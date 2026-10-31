@@ -1,12 +1,14 @@
-# 0.9.0 打包与发布
+# 0.9.1 打包与发布
 
-发布版本统一来自根目录 `VERSION`（当前 `0.9.0`），修订号来自 `packaging/revisions.env`。
+发布版本统一来自根目录 `VERSION`（当前 `0.9.1`），修订号来自 `packaging/revisions.env`。
+
+> 仓库角色：Gitee 是主线；GitHub 负责构建、发布包、Go module 路径和海外镜像；CNB 是镜像。
 
 | 渠道 | 产物 |
 |---|---|
-| GitHub / Gitee / CNB Release | `spark-store-tui-source-0.9.0-r1.tar.gz`、各架构 `.deb`、`.rpm`、`SHA256SUMS` |
-| Debian | `spark-store-tui_0.9.0-1_{amd64,arm64,loong64}.deb` |
-| RPM | `spark-store-tui-0.9.0-1.{x86_64,aarch64,loongarch64}.rpm` |
+| GitHub / Gitee / CNB Release | `spark-store-tui-source-0.9.1-r1.tar.gz`、各架构 `.deb`、`.rpm`、`SHA256SUMS` |
+| Debian | `spark-store-tui_0.9.1-1_{amd64,arm64,loong64}.deb` |
+| RPM | `spark-store-tui-0.9.1-1.{x86_64,aarch64,loongarch64}.rpm` |
 | AUR | `dist/aur/PKGBUILD`、`dist/aur/.SRCINFO` |
 
 ## 一条命令构建全部产物
@@ -21,13 +23,13 @@ make dist        # 等价于 scripts/build-dist.sh
 产物写入 `dist/`：
 
 ```text
-spark-store-tui_0.9.0-1_amd64.deb
-spark-store-tui_0.9.0-1_arm64.deb
-spark-store-tui_0.9.0-1_loong64.deb
-spark-store-tui-0.9.0-1.x86_64.rpm
-spark-store-tui-0.9.0-1.aarch64.rpm
-spark-store-tui-0.9.0-1.loongarch64.rpm
-spark-store-tui-source-0.9.0-r1.tar.gz
+spark-store-tui_0.9.1-1_amd64.deb
+spark-store-tui_0.9.1-1_arm64.deb
+spark-store-tui_0.9.1-1_loong64.deb
+spark-store-tui-0.9.1-1.x86_64.rpm
+spark-store-tui-0.9.1-1.aarch64.rpm
+spark-store-tui-0.9.1-1.loongarch64.rpm
+spark-store-tui-source-0.9.1-r1.tar.gz
 SHA256SUMS
 aur/PKGBUILD
 aur/.SRCINFO
@@ -39,7 +41,7 @@ aur/.SRCINFO
 scripts/build-dist.sh --skip-rpm
 scripts/build-dist.sh --skip-deb --skip-source
 scripts/build-dist.sh --deb-archs "amd64 arm64"
-scripts/build-dist.sh --version 0.9.0
+scripts/build-dist.sh --version 0.9.1
 ```
 
 `make build` 只构建本机架构 Deb，`make source` 只生成源码包。

@@ -18,6 +18,10 @@ func getJSON(ctx context.Context, client *http.Client, url string, target any) e
 	}
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("User-Agent", "sparkstore/0.9")
+	// Catalog data changes without a versioned URL; bypass intermediary caches
+	// so package actions never rely on a stale app list.
+	request.Header.Set("Cache-Control", "no-cache")
+	request.Header.Set("Pragma", "no-cache")
 	response, err := client.Do(request)
 	if err != nil {
 		return err

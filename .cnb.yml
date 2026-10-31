@@ -54,4 +54,4 @@ v*:
             npx --yes repo-all-sync@0.2.1 release \
               --version "${CNB_BRANCH#v}" \
               --assets dist \
-              --notes RELEASE_NOTES.md
+              --notes dist/RELEASE_NOTES.md

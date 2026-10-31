@@ -52,7 +52,7 @@ jobs:
           else
             gh release create "$tag" "${assets[@]}" \
               --title "spark-store-tui $tag" \
-              --notes-file RELEASE_NOTES.md
+              --notes-file dist/RELEASE_NOTES.md
           fi
 
   publish-mirrors:
@@ -96,4 +96,4 @@ jobs:
           npx --yes repo-all-sync@0.2.1 release \
             --version "$(cat VERSION)" \
             --assets dist \
-            --notes RELEASE_NOTES.md
+            --notes dist/RELEASE_NOTES.md

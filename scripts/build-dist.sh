@@ -131,7 +131,7 @@ if [ "$SKIP_SOURCE" -eq 0 ]; then
     echo "warning: worktree is dirty; building the source archive from the worktree" >&2
     stage=$(mktemp -d)
     mkdir -p "$stage/$SOURCE_DIR"
-    tar --exclude='./.git' --exclude='./dist' --exclude='./build' --exclude='./legacy' \
+    tar --exclude='./.git' --exclude='./dist' --exclude='./build' \
       --exclude='./.github' --exclude='./.codex-tools' --exclude='./packaging/aur' \
       --exclude='*.deb' --exclude='*.rpm' --exclude='*.tar.gz' \
       -cf - . | tar -xf - -C "$stage/$SOURCE_DIR"
@@ -192,7 +192,10 @@ if [ -f "$OUT/$SOURCE_TAR" ]; then
   render_aur
 fi
 
-# 5. Checksums over every binary artifact.
+# 5. Release notes are the current CHANGELOG section.
+bash scripts/release-notes.sh > "$OUT/RELEASE_NOTES.md"
+
+# 6. Checksums over every binary artifact.
 (
   cd "$OUT"
   : > SHA256SUMS

@@ -45,7 +45,7 @@ grep -Fq 'pkgrel = @AUR_RELEASE@' packaging/aur/SRCINFO.in || {
 
 # The 0.8.3 compatibility branch in the installer is the only allowed reference
 # to the old entrypoint.
-stale=$(grep -Rn --exclude-dir=.git --exclude-dir=legacy --exclude-dir=dist --exclude-dir=build \
+stale=$(grep -Rn --exclude-dir=.git --exclude-dir=dist --exclude-dir=build \
   'cmd/spark-store-tui' . 2>/dev/null | grep -v 'scripts/install-sparkstore.sh' || true)
 if [ -n "$stale" ]; then
   echo "stale entrypoint reference:" >&2
@@ -53,7 +53,7 @@ if [ -n "$stale" ]; then
   status=1
 fi
 
-stale=$(grep -RnE --exclude-dir=.git --exclude-dir=legacy --exclude-dir=dist --exclude-dir=build \
+stale=$(grep -RnE --exclude-dir=.git --exclude-dir=dist --exclude-dir=build \
   '(^|[^/])package-root/' . 2>/dev/null | grep -v 'packaging/debian/package-root' | grep -v 'scripts/install-sparkstore.sh' || true)
 if [ -n "$stale" ]; then
   echo "stale package-root reference:" >&2

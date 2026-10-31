@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Spark Store TUI official variant">
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#00F1FF"/>
+      <stop offset="1" stop-color="#008AFF"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="url(#blue)"/>
+  <rect x="96" y="144" width="320" height="240" rx="28" fill="#FFFFFF" fill-opacity="0.14" stroke="#FFFFFF" stroke-width="10"/>
+  <circle cx="132" cy="180" r="8" fill="#FFFFFF" fill-opacity="0.9"/>
+  <circle cx="160" cy="180" r="8" fill="#FFFFFF" fill-opacity="0.7"/>
+  <circle cx="188" cy="180" r="8" fill="#FFFFFF" fill-opacity="0.5"/>
+  <path d="M144 232 L192 264 L144 296" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="216" y="292" width="104" height="18" rx="9" fill="#FFFFFF"/>
+  <path d="M352 84 L366 124 L406 138 L366 152 L352 192 L338 152 L298 138 L338 124 Z" fill="#FFFFFF"/>
+</svg>

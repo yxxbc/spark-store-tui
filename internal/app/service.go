@@ -12,6 +12,7 @@ import (
 	"github.com/yxxbc/spark-store-tui/internal/domain"
 	"github.com/yxxbc/spark-store-tui/internal/packages"
 	"github.com/yxxbc/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/preview"
 )
 
 // Downloader is the download capability the application layer needs. Both the
@@ -193,7 +194,7 @@ func (s *Service) PackageStatus(ctx context.Context, app domain.App) (domain.Pac
 	return s.backend.Status(ctx, app)
 }
 
-func (s *Service) ImagePreviewAvailable() bool { return platform.HasImagePreview() }
+func (s *Service) ImagePreviewAvailable() bool { return preview.SupportsImages() }
 
 func (s *Service) BootstrapCommand() (string, bool) {
 	command, err := platform.ImagePreviewCommand(s.host.Family)

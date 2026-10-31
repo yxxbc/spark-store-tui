@@ -16,55 +16,109 @@ import (
 
 const maxImageBytes = 12 << 20
 
-// Brand renders the configured logo. Terminals with a native image protocol
-// receive the original bytes; everything else falls back to chafa.
+// Brand renders the configured logo as text art. The home layout embeds it in
+// a bordered panel, so a native image escape sequence (which is positioned by
+// the terminal rather than the line renderer) would be drawn in the wrong
+// place. App previews use RenderFile/RenderURL and may return native images.
 func Brand() string {
-	return RenderFile(brandImagePath())
+	return renderChafa(brandImagePath(), 18, 9)
+}
+
+// SupportsImages reports whether any preview path is available: a native
+// terminal image protocol or chafa. Native protocols do not require chafa.
+func SupportsImages() bool {
+	if _, err := exec.LookPath("chafa"); err == nil {
+		return true
+	}
+	return imageProtocol() != ""
 }
 
 // RenderURL caches a remote image before rendering it. Downloads are bounded
 // to avoid turning untrusted metadata into an unbounded cache.
 func RenderURL(rawURL string) string {
-	if rawURL == "" {
+	return RenderURLSized(rawURL, 18, 9)
+}
+
+// RenderURLSized renders a cached remote image at the requested cell size.
+func RenderURLSized(rawURL string, width, height int) string {
+	path, ok := cachedImage(rawURL)
+	if !ok {
 		return ""
+	}
+	return RenderFileSized(path, width, height)
+}
+
+// RenderURLChafa always uses chafa, even on terminals with a native image
+// protocol. It is used for the small application icon inside a bordered panel.
+func RenderURLChafa(rawURL string, width, height int) string {
+	path, ok := cachedImage(rawURL)
+	if !ok {
+		return ""
+	}
+	return renderChafa(path, width, height)
+}
+
+// imageCacheTTL bounds how long a cached icon/screenshot may be reused without
+// revalidating it against the remote URL.
+const imageCacheTTL = 24 * time.Hour
+
+func cachedImage(rawURL string) (string, bool) {
+	if rawURL == "" {
+		return "", false
 	}
 	cacheDirectory, err := os.UserCacheDir()
 	if err != nil {
-		return ""
+		return "", false
 	}
 	name := fmt.Sprintf("%x.img", sha256.Sum256([]byte(rawURL)))
 	path := filepath.Join(cacheDirectory, "sparkstore", "images", name)
-	if !isFile(path) {
-		if err := fetch(rawURL, path); err != nil {
-			return ""
+	if info, err := os.Stat(path); err == nil {
+		if time.Since(info.ModTime()) < imageCacheTTL {
+			return path, true
 		}
+		// Revalidate; if the refresh fails, keep the stale copy rather than
+		// dropping the preview entirely.
+		if err := fetch(rawURL, path); err != nil {
+			return path, true
+		}
+		return path, true
 	}
-	return RenderFile(path)
+	if err := fetch(rawURL, path); err != nil {
+		return "", false
+	}
+	return path, true
 }
 
 // RenderFile prefers the original image through a native terminal protocol and
 // falls back to chafa symbol art. The fallback keeps the UI usable in every
 // terminal, including those reached over SSH.
 func RenderFile(path string) string {
+	return RenderFileSized(path, 18, 9)
+}
+
+// RenderFileSized renders files for terminals that support a native image
+// protocol, with chafa as the fallback.
+func RenderFileSized(path string, width, height int) string {
 	if path == "" {
 		return ""
 	}
 	info, err := os.Stat(path)
 	if err == nil && info.Size() > 0 && info.Size() <= maxImageBytes {
-		if rendered := renderDirect(path); rendered != "" {
+		if rendered := renderDirect(path, width, height); rendered != "" {
 			return rendered
 		}
 	}
-	return renderChafa(path)
+	return renderChafa(path, width, height)
 }
 
-func renderChafa(path string) string {
+func renderChafa(path string, width, height int) string {
 	if _, err := exec.LookPath("chafa"); err != nil {
 		return ""
 	}
 	// TUI output is captured rather than written to chafa's controlling terminal.
 	// Probing in that situation can block for seconds on some terminals.
-	command := exec.Command("chafa", "--probe=off", "--format=symbols", "--size=18x9", "--animate=off", path)
+	command := exec.Command("chafa", "--probe=off", "--format=symbols",
+		fmt.Sprintf("--size=%dx%d", width, height), "--animate=off", path)
 	output, err := command.Output()
 	if err != nil {
 		return ""
@@ -72,7 +126,7 @@ func renderChafa(path string) string {
 	return strings.TrimSpace(string(output))
 }
 
-func renderDirect(path string) string {
+func renderDirect(path string, width, height int) string {
 	protocol := imageProtocol()
 	if protocol == "" {
 		return ""
@@ -84,13 +138,13 @@ func renderDirect(path string) string {
 	encoded := base64.StdEncoding.EncodeToString(data)
 	switch protocol {
 	case "iterm":
-		return "\x1b]1337;File=inline=1;width=18;height=9;preserveAspectRatio=1:" + encoded + "\x07"
+		return fmt.Sprintf("\x1b]1337;File=inline=1;width=%d;height=%d;preserveAspectRatio=1:%s\x07", width, height, encoded)
 	case "kitty":
 		// f=100 is PNG-only; other formats fall back to chafa.
 		if !isPNG(data) {
 			return ""
 		}
-		return kittyGraphics(encoded)
+		return kittyGraphics(encoded, width, height)
 	default:
 		return ""
 	}
@@ -112,7 +166,7 @@ func imageProtocol() string {
 	}
 }
 
-func kittyGraphics(encoded string) string {
+func kittyGraphics(encoded string, width, height int) string {
 	const chunkSize = 4096
 	var builder strings.Builder
 	for len(encoded) > 0 {
@@ -125,7 +179,7 @@ func kittyGraphics(encoded string) string {
 		} else {
 			encoded = ""
 		}
-		fmt.Fprintf(&builder, "\x1b_Ga=T,f=100,c=18,r=9,m=%d;%s\x1b\\", more, chunk)
+		fmt.Fprintf(&builder, "\x1b_Ga=T,f=100,c=%d,r=%d,m=%d;%s\x1b\\", width, height, more, chunk)
 	}
 	return builder.String()
 }

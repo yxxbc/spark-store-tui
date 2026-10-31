@@ -75,8 +75,12 @@ type Model struct {
 	loading              bool
 	imageReady           bool
 	brandImage           string
-	previewImage         string
+	iconImage            string
+	screenshotImage      string
 	previewRequest       int
+	loadedAt             time.Time
+	pendingAction        string
+	pendingAppID         string
 	searching            bool
 	query                string
 	descriptionExpanded  bool
@@ -97,6 +101,7 @@ func New(service Service, terminal Terminal) Model {
 		service:    service,
 		terminal:   terminal,
 		category:   "development",
+		focus:      focusApps,
 		width:      120,
 		height:     38,
 		status:     "按 Enter 加载真实星火商店目录",
@@ -169,24 +174,43 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.apps = message.apps
 		m.selectedApp = 0
+		if m.pendingAppID != "" {
+			for index, app := range m.filteredApps() {
+				if app.ID == m.pendingAppID {
+					m.selectedApp = index
+					break
+				}
+			}
+		}
 		m.clearPackageStatus()
 		m.previewRequest++
 		if message.err != nil {
+			m.pendingAction = ""
+			m.pendingAppID = ""
 			m.loadError = message.err.Error()
 			m.status = "目录加载失败"
 			return m, nil
 		}
 		m.loadError = ""
+		m.loadedAt = time.Now()
 		m.status = fmt.Sprintf("已加载 %d 个真实应用（%s）", len(m.apps), m.category)
+		if m.pendingAction != "" {
+			action := m.pendingAction
+			m.pendingAction = ""
+			m.pendingAppID = ""
+			updated, command := m.handleKey(action)
+			return updated, tea.Batch(m.schedulePreview(), command)
+		}
 		return m, m.schedulePreview()
 	case previewDueMsg:
 		if message.request != m.previewRequest || message.appID != m.selectedAppValue().ID {
 			return m, nil
 		}
-		return m, m.loadPreview(message.appID, message.url, message.request)
+		return m, m.loadPreview(message.appID, message.iconURL, message.screenshotURL, message.request)
 	case previewLoadedMsg:
 		if message.request == m.previewRequest && m.selectedAppValue().ID == message.appID {
-			m.previewImage = message.image
+			m.iconImage = message.icon
+			m.screenshotImage = message.screenshot
 		}
 	case downloadFinishedMsg:
 		m.downloading = false
@@ -281,7 +305,8 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 				m.clearPackageStatus()
 			}
 		}
-		m.previewImage = ""
+		m.iconImage = ""
+		m.screenshotImage = ""
 		m.previewRequest++
 		return m, m.schedulePreview()
 	}
@@ -399,21 +424,27 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		m.screen = screenHome
 		m.status = "已返回星火商店简介"
 	case "tab", "right", "left":
-		if m.focus == focusSources {
-			m.focus = focusApps
-		} else {
-			m.focus = focusSources
+		// With a single catalog source the source pane has nothing to choose,
+		// so keep the focus on the app list instead of making arrow keys
+		// silently reload the catalog.
+		if len(m.sources) > 1 {
+			if m.focus == focusSources {
+				m.focus = focusApps
+			} else {
+				m.focus = focusSources
+			}
 		}
 	case "up", "k", "down", "j":
 		delta := -1
 		if key == "down" || key == "j" {
 			delta = 1
 		}
-		if m.focus == focusSources && len(m.sources) > 0 {
+		if m.focus == focusSources && len(m.sources) > 1 {
 			m.selectedSource = wrap(m.selectedSource+delta, len(m.sources))
 			m.selectedApp = 0
 			m.apps = nil
-			m.previewImage = ""
+			m.iconImage = ""
+			m.screenshotImage = ""
 			m.descriptionExpanded = false
 			m.clearPackageStatus()
 			m.previewRequest++
@@ -423,9 +454,10 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.status = "正在切换目录源…"
 			return m, m.loadCategories()
 		}
-		if m.focus == focusApps && len(m.filteredApps()) > 0 {
+		if len(m.filteredApps()) > 0 {
 			m.selectedApp = wrap(m.selectedApp+delta, len(m.filteredApps()))
-			m.previewImage = ""
+			m.iconImage = ""
+			m.screenshotImage = ""
 			m.descriptionExpanded = false
 			m.clearPackageStatus()
 			m.previewRequest++
@@ -452,7 +484,10 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		m.categoryIndex = wrap(m.categoryIndex+delta, len(m.categories))
 		m.category = m.categories[m.categoryIndex].ID
 		m.apps = nil
-		m.previewImage = ""
+		m.selectedApp = 0
+		m.focus = focusApps
+		m.iconImage = ""
+		m.screenshotImage = ""
 		m.descriptionExpanded = false
 		m.clearPackageStatus()
 		m.previewRequest++
@@ -467,6 +502,14 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.status = fmt.Sprintf("已选择 %s；下载任务接入完成后将从详情资产创建", app.Name)
 		}
 	case "d":
+		if m.metadataStale() {
+			m.pendingAction = "d"
+			m.pendingAppID = m.selectedAppValue().ID
+			m.loading = true
+			m.loadError = ""
+			m.status = "目录信息超过 10 分钟，正在刷新…"
+			return m, m.loadApps()
+		}
 		if m.downloading {
 			m.status = "下载任务正在运行"
 			return m, nil
@@ -499,6 +542,14 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		m.status = "正在通过 aptss/aria2 下载或续传…"
 		return m, m.downloadApp()
 	case "p":
+		if m.metadataStale() {
+			m.pendingAction = "p"
+			m.pendingAppID = m.selectedAppValue().ID
+			m.loading = true
+			m.loadError = ""
+			m.status = "目录信息超过 10 分钟，正在刷新…"
+			return m, m.loadApps()
+		}
 		if m.checkingPackage {
 			m.status = "正在查询所选应用的安装与更新状态"
 			return m, nil
@@ -655,25 +706,55 @@ func (m Model) loadCategories() tea.Cmd {
 	}
 }
 
+// metadataTTL bounds how long a loaded catalog may be used before a package
+// action refreshes it, so downloads and upgrades do not rely on stale metadata.
+const metadataTTL = 10 * time.Minute
+
+func (m Model) metadataStale() bool {
+	return m.loadedAt.IsZero() || time.Since(m.loadedAt) > metadataTTL
+}
+
 func (m Model) schedulePreview() tea.Cmd {
 	if !m.imageReady || m.width < 80 {
 		return nil
 	}
 	app := m.selectedAppValue()
-	url := app.IconURL
-	if url == "" && len(app.ScreenshotURLs) > 0 {
-		url = app.ScreenshotURLs[0]
-	}
-	if app.ID == "" || url == "" {
+	iconURL, screenshotURL := m.previewURLs()
+	if app.ID == "" || (iconURL == "" && screenshotURL == "") {
 		return nil
 	}
 	return tea.Tick(350*time.Millisecond, func(time.Time) tea.Msg {
-		return previewDueMsg{appID: app.ID, url: url, request: m.previewRequest}
+		return previewDueMsg{
+			appID:         app.ID,
+			iconURL:       iconURL,
+			screenshotURL: screenshotURL,
+			request:       m.previewRequest,
+		}
 	})
 }
 
-func (m Model) loadPreview(appID, url string, request int) tea.Cmd {
+// previewURLs returns the metadata icon and the first in-app screenshot. The
+// store-style layout shows both; there is no cycling.
+func (m Model) previewURLs() (iconURL, screenshotURL string) {
+	app := m.selectedAppValue()
+	if len(app.ScreenshotURLs) > 0 {
+		screenshotURL = app.ScreenshotURLs[0]
+	}
+	return app.IconURL, screenshotURL
+}
+
+func (m Model) loadPreview(appID, iconURL, screenshotURL string, request int) tea.Cmd {
 	return func() tea.Msg {
-		return previewLoadedMsg{appID: appID, image: preview.RenderURL(url), request: request}
+		icon := ""
+		if iconURL != "" {
+			icon = preview.RenderURLChafa(iconURL, 8, 4)
+		}
+		screenshot := ""
+		if screenshotURL != "" {
+			screenshot = preview.RenderURL(screenshotURL)
+		}
+		return previewLoadedMsg{
+			appID: appID, icon: icon, screenshot: screenshot, request: request,
+		}
 	}
 }

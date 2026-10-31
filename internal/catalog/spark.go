@@ -64,24 +64,33 @@ func (p SparkMetadataProvider) ListApps(ctx context.Context, query Query) ([]dom
 
 	limit := normalizedLimit(query.Limit)
 	apps := make([]domain.App, 0, min(limit, len(entries)))
+	seen := make(map[string]bool, len(entries))
 	for _, entry := range entries {
-		packageName := first(entry.PackageName, entry.PackageNameLower)
-		if packageName == "" {
+		filename := cleanText(entry.Filename)
+		// A filename with a path separator cannot be a safe download target.
+		if strings.ContainsAny(filename, `/\`) {
 			continue
 		}
+		packageName := cleanText(first(entry.PackageName, entry.PackageNameLower))
+		// Duplicate rows would otherwise create two entries for the same
+		// package manager name and make the catalog disagree with the backend.
+		if packageName == "" || seen[packageName] {
+			continue
+		}
+		seen[packageName] = true
 		apps = append(apps, domain.App{
 			ID:             fmt.Sprintf("spark:%s:%s:%s", arch, query.Category, packageName),
 			Name:           cleanText(first(entry.Name, entry.NameLower, packageName)),
 			Version:        cleanText(entry.Version),
-			PackageFormat:  packageFormat(entry.Filename),
+			PackageFormat:  packageFormat(filename),
 			Size:           cleanText(entry.Size),
 			Description:    cleanText(entry.More),
 			SourceID:       p.Catalog.ID,
 			Architecture:   arch,
 			Category:       query.Category,
-			PackageName:    cleanText(packageName),
-			Filename:       cleanText(entry.Filename),
-			MetalinkURL:    cleanText(metalinkURL(base, arch, query.Category, packageName, entry.Filename)),
+			PackageName:    packageName,
+			Filename:       filename,
+			MetalinkURL:    cleanText(metalinkURL(base, arch, query.Category, packageName, filename)),
 			IconURL:        cleanText(firstURL(entry.Icons)),
 			ScreenshotURLs: cleanURLs(urls(entry.Images)),
 		})

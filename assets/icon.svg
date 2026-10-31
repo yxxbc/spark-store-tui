@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Spark Store TUI">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B2430"/>
+      <stop offset="1" stop-color="#0E1319"/>
+    </linearGradient>
+    <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC56B"/>
+      <stop offset="1" stop-color="#FF9D2E"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="url(#bg)" stroke="#FF9D2E" stroke-width="12"/>
+  <rect x="88" y="136" width="336" height="256" rx="28" fill="#0B1016" stroke="#3D4D63" stroke-width="8"/>
+  <circle cx="124" cy="172" r="8" fill="#FF6B6B"/>
+  <circle cx="152" cy="172" r="8" fill="#FFC56B"/>
+  <circle cx="180" cy="172" r="8" fill="#78D64B"/>
+  <path d="M136 232 L184 264 L136 296" fill="none" stroke="url(#spark)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="208" y="292" width="112" height="18" rx="9" fill="url(#spark)"/>
+  <path d="M352 92 L364 128 L400 140 L364 152 L352 188 L340 152 L304 140 L340 128 Z" fill="url(#spark)"/>
+  <circle cx="398" cy="200" r="8" fill="#FFC56B"/>
+  <circle cx="306" cy="88" r="6" fill="#FF9D2E"/>
+</svg>

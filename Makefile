@@ -13,7 +13,7 @@ LDFLAGS := -s -w \
 	-X github.com/yxxbc/spark-store-tui/internal/version.Commit=$(COMMIT) \
 	-X github.com/yxxbc/spark-store-tui/internal/version.Date=$(BUILD_DATE)
 
-.PHONY: all check build source dist go-test go-build local-install clean release-check version
+.PHONY: all check build source dist go-test go-build local-install clean release-check version icons test-tui-macos
 
 all: check build
 
@@ -26,6 +26,9 @@ check:
 	bash -n scripts/publish-aur.sh
 	bash -n scripts/sync-all.sh
 	bash -n scripts/check-version.sh
+	bash -n scripts/build-icons.sh
+	bash -n scripts/release-notes.sh
+	bash -n scripts/test-tui-macos.sh
 	go test ./...
 	go vet ./...
 	go build ./...
@@ -70,6 +73,12 @@ release-check:
 
 version:
 	@echo $(VERSION)
+
+icons:
+	scripts/build-icons.sh
+
+test-tui-macos:
+	scripts/test-tui-macos.sh
 
 clean:
 	rm -rf build dist

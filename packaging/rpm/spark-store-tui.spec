@@ -1,5 +1,5 @@
 Name:           spark-store-tui
-Version:        0.9.0
+Version:        0.9.1
 Release:        1%{?dist}
 Summary:        Native terminal UI for Spark Store software management
 
@@ -71,6 +71,10 @@ update-desktop-database /usr/share/applications >/dev/null 2>&1 || :
 update-desktop-database /usr/share/applications >/dev/null 2>&1 || :
 
 %changelog
+* Sat Oct 31 2026 Xynrin <xynrin@163.com> - 0.9.1-1
+- Fix arrow-key navigation, category switching and screenshot previews
+- Improve the two-column layout and short-terminal behavior
+
 * Sat Oct 31 2026 Xynrin <xynrin@163.com> - 0.9.0-1
 - Rewrite internal catalog, download, package backend and application layers
 - Add native version reporting and unified three-platform release workflow

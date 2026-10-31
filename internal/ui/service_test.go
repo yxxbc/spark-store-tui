@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/yxxbc/spark-store-tui/internal/domain"
@@ -71,6 +72,7 @@ func TestDownloadKeyUsesAPMOnNonDebianHosts(t *testing.T) {
 		terminal: &fakeTerminal{},
 		apps:     []domain.App{{ID: "code", Name: "Code"}},
 		screen:   screenBrowse,
+		loadedAt: time.Now(),
 	}
 	updated, command := model.handleKey("d")
 	got := updated.(Model)
@@ -93,6 +95,7 @@ func TestDownloadKeyPreparesAptssDownloadOnDebian(t *testing.T) {
 		terminal: terminal,
 		apps:     []domain.App{{ID: "code", Name: "Code"}},
 		screen:   screenBrowse,
+		loadedAt: time.Now(),
 	}
 	updated, command := model.handleKey("d")
 	got := updated.(Model)
@@ -108,6 +111,7 @@ func TestExistingPackagePromptsInsteadOfDownloading(t *testing.T) {
 		terminal: &fakeTerminal{},
 		apps:     []domain.App{{ID: "code", Name: "Code"}},
 		screen:   screenBrowse,
+		loadedAt: time.Now(),
 	}
 	updated, command := model.handleKey("d")
 	got := updated.(Model)

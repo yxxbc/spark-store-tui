@@ -1,6 +1,6 @@
-# 架构（0.9.0）
+# 架构（0.9.1）
 
-0.9.0 保持用户可见行为不变，重写了内部控制层。目标是把“目录数据、下载、包管理、UI”拆成可替换的边界，并让所有提权操作只有一个出口。
+0.9.1 保持用户可见行为不变，重写了内部控制层。目标是把“目录数据、下载、包管理、UI”拆成可替换的边界，并让所有提权操作只有一个出口。
 
 ## 目录
 
@@ -22,7 +22,9 @@ packaging/
   debian/package-root/   Debian 包根、.desktop、图标
   rpm/                   RPM spec
   aur/                   PKGBUILD/SRCINFO 模板
-legacy/apt|rpm/          冻结于 0.7.2 的历史归档
+assets/                  icon.svg / icon-official.svg 及渲染图
+AGENTS.md                贡献与代理约定
+CHANGELOG.md             版本变更与发布说明来源
 scripts/                 build-dist、sync-all、install、publish-aur
 .github/workflows/       ci、release、mirror、publish-aur
 .cnb.yml                 CNB CI 与 tag 发布
@@ -90,6 +92,12 @@ cmd/sparkstore                          → app, ui, config, platform, version
 ## 版本与构建
 
 `VERSION` 是唯一上游版本；`packaging/revisions.env` 保存 Deb/RPM/source/AUR 修订号。`scripts/build-dist.sh` 用 `-ldflags` 注入 `version.Version/Commit/Date`，并生成所有发布物与 `SHA256SUMS`。`scripts/check-version.sh` 校验 spec、control、AUR 模板与旧路径残留。
+
+## 仓库角色
+
+- **Gitee**：主线仓库与国内用户入口。
+- **GitHub**：构建与发布包、Go module 路径、海外用户镜像。
+- **CNB**：镜像与 CNB 原生流水线。
 
 ## 发布
 

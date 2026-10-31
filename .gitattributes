@@ -23,9 +23,7 @@ SRCINFO.in text eol=lf
 *.tar.gz binary
 
 # Keep mirror snapshots and review material out of source tarballs.
-legacy/** export-ignore
 .github/** export-ignore
-docs/review/** export-ignore
 packaging/aur/** export-ignore
 build/** export-ignore
 dist/** export-ignore

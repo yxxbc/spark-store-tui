@@ -1,4 +1,4 @@
-# 数据接口与内部边界（0.9.0）
+# 数据接口与内部边界（0.9.1）
 
 本文是 `sparkstore` 的数据契约文档。代码中的接口均定义在消费者包内，便于替换实现和单元测试；外部程序不要依赖 `internal/` 包路径，稳定契约以本文为准。
 
@@ -53,6 +53,12 @@ type PlatformInfo struct {
     Distro, Family, Architecture, SparkArchPath string
 }
 ```
+
+### 图标与截图
+
+- `App.IconURL` 来自 metadata 的 `icons`，表示应用图标。
+- `App.ScreenshotURLs` 来自 metadata 的 `img_urls`，表示应用内界面截图。
+- 详情页采用标准商店排版：应用图标 + 首张截图同时显示，不做切换；没有截图时只显示图标。
 
 ### 操作计划
 
@@ -194,6 +200,13 @@ type Terminal interface {
 ## 持久化（`internal/state`）
 
 任务快照保存在 `SPARKSTORE_CONFIG_DIR`（默认 `~/.config/sparkstore/tasks.json`），写临时文件后 rename，进程崩溃不会留下半截 JSON。`0.8.x` 的路径保持不变，升级后可继续恢复中断任务。
+
+## 元数据新鲜度
+
+- `catalog` 不使用离线 applist 缓存，请求带 `Cache-Control: no-cache`。
+- `app.Service` 在 `D` / `P` 前检查目录加载时间；超过 10 分钟先刷新目录，再执行操作。
+- applist 按包名去重，带路径分隔符的文件名被丢弃。
+- 图片缓存 24 小时后重新校验。
 
 ## 机器可读 schema
 

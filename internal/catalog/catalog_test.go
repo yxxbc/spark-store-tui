@@ -68,3 +68,23 @@ func TestSparkMetadataProviderReadsCategories(t *testing.T) {
 		t.Fatalf("unexpected categories: %+v", categories)
 	}
 }
+
+func TestSparkMetadataProviderSkipsDuplicatesAndUnsafeFilenames(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`[
+  {"Pkgname":"code","Name":"Code","Version":"1","Filename":"code_1_amd64.deb"},
+  {"Pkgname":"code","Name":"Duplicate","Version":"2","Filename":"code_2_amd64.deb"},
+  {"Pkgname":"evil","Name":"Evil","Version":"1","Filename":"../evil_1_amd64.deb"}
+]`))
+	}))
+	defer server.Close()
+
+	provider := SparkMetadataProvider{BaseURL: server.URL}
+	apps, err := provider.ListApps(context.Background(), Query{Architecture: "amd64-store", Category: "development"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(apps) != 1 || apps[0].Name != "Code" {
+		t.Fatalf("apps = %+v", apps)
+	}
+}

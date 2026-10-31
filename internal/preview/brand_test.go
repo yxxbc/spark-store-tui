@@ -86,7 +86,7 @@ func TestImageProtocolDetection(t *testing.T) {
 
 func TestKittyGraphicsChunksPayload(t *testing.T) {
 	encoded := strings.Repeat("A", 5000)
-	rendered := kittyGraphics(encoded)
+	rendered := kittyGraphics(encoded, 18, 9)
 	if !strings.Contains(rendered, "m=1;") || !strings.Contains(rendered, "m=0;") {
 		t.Fatalf("chunk markers missing: %q", rendered[:80])
 	}
@@ -102,7 +102,7 @@ func TestKittenDirectRenderRequiresPNG(t *testing.T) {
 	}
 	t.Setenv("KITTY_WINDOW_ID", "1")
 	t.Setenv("TERM", "xterm-kitty")
-	if rendered := renderDirect(path); rendered != "" {
+	if rendered := renderDirect(path, 18, 9); rendered != "" {
 		t.Fatalf("non-PNG rendered through kitty: %q", rendered)
 	}
 }

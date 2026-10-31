@@ -66,7 +66,10 @@ if [ "$SKIP_RELEASE" -eq 0 ]; then
     echo "dist/ is missing; rebuild with --build or run scripts/build-dist.sh" >&2
     exit 1
   fi
-  RELEASE_ARGS=(release --version "$VERSION" --assets dist --notes RELEASE_NOTES.md)
+  if [ ! -f dist/RELEASE_NOTES.md ]; then
+    scripts/release-notes.sh > dist/RELEASE_NOTES.md
+  fi
+  RELEASE_ARGS=(release --version "$VERSION" --assets dist --notes dist/RELEASE_NOTES.md)
   [ "$GITHUB" -eq 1 ] && RELEASE_ARGS+=(--github)
   RELEASE_ARGS+=("${DRY_FLAG[@]}")
   "${CLI[@]}" "${RELEASE_ARGS[@]}"

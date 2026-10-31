@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/yxxbc/spark-store-tui/internal/app"
@@ -63,7 +64,7 @@ func main() {
 	}
 
 	backend, backendErr := packages.For(host)
-	if backendErr != nil {
+	if backendErr != nil && runtime.GOOS == "linux" {
 		// The TUI must still browse metadata on unsupported hosts; package
 		// operations report the same error when the user asks for them.
 		fmt.Fprintln(os.Stderr, "sparkstore: package operations unavailable:", backendErr)

@@ -15,15 +15,17 @@ type categoriesLoadedMsg struct {
 }
 
 type previewLoadedMsg struct {
-	appID   string
-	image   string
-	request int
+	appID      string
+	icon       string
+	screenshot string
+	request    int
 }
 
 type previewDueMsg struct {
-	appID   string
-	url     string
-	request int
+	appID         string
+	iconURL       string
+	screenshotURL string
+	request       int
 }
 
 type downloadFinishedMsg struct {
