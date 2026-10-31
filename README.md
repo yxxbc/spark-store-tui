@@ -12,7 +12,7 @@
   <a href="https://github.com/yxxbc/spark-store-tui"><img src="https://img.shields.io/badge/GitHub-Mirror-181717?logo=github&logoColor=white" alt="GitHub mirror"></a>
   <a href="https://cnb.cool/yxxbc/spark-store-tui"><img src="https://img.shields.io/badge/CNB-Mirror-1f6feb" alt="CNB mirror"></a>
   <a href="COPYING"><img src="https://img.shields.io/badge/License-GPL--3.0--only-4caf50" alt="GPL-3.0-only"></a>
-  <img src="https://img.shields.io/badge/Go-%3E%3D1.25-00ADD8?logo=go&logoColor=white" alt="Go 1.25 or newer">
+  <img src="https://img.shields.io/badge/Go-%3E%3D1.26-00ADD8?logo=go&logoColor=white" alt="Go 1.26 or newer">
 </p>
 
 > `sparkstore` 使用 Spark Store 公开 metadata 展示目录；Debian 应用交给官方 `aptss` 下载、校验、安装、更新和卸载，其他受支持发行版交给 Amber APM。
@@ -127,7 +127,7 @@ Release 同时发布到 GitHub、Gitee（`spark-store-project`）与 CNB（`yxxb
 
 ## 开发与构建
 
-需要 Go 1.25 或更新版本。
+需要 Go 1.26 或更新版本。
 
 ```bash
 go test ./...

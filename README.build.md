@@ -1,6 +1,6 @@
 # 构建 spark-store-tui 0.9.0
 
-在 Linux 或 WSL（Go 1.25+、`dpkg-deb`；构建 RPM 还需要 `rpmbuild`）中：
+在 Linux 或 WSL（Go 1.26+、`dpkg-deb`；构建 RPM 还需要 `rpmbuild`）中：
 
 ```bash
 go test ./...

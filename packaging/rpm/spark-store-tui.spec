@@ -7,7 +7,7 @@ License:        GPL-3.0-only
 URL:            https://github.com/yxxbc/spark-store-tui
 Source0:        https://github.com/yxxbc/%{name}/releases/download/v%{version}/%{name}-source-%{version}-r1.tar.gz
 
-BuildRequires:  go >= 1.25
+BuildRequires:  go >= 1.26
 Requires:       ca-certificates
 Recommends:     chafa
 Recommends:     sudo

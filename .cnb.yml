@@ -8,7 +8,7 @@ main:
   push:
     - name: ci
       docker:
-        image: golang:1.25-bookworm
+        image: golang:1.26-bookworm
       stages:
         - name: test
           script: |
@@ -28,7 +28,7 @@ v*:
   tag_push:
     - name: release
       docker:
-        image: golang:1.25-bookworm
+        image: golang:1.26-bookworm
       stages:
         - name: test
           script: |

@@ -287,8 +287,8 @@ install_source() {
   ensure_debian_backend
   command -v go >/dev/null || { echo '未能安装 Go。' >&2; exit 1; }
   go_version=$(go env GOVERSION | sed 's/^go//')
-  if [ "$(printf '1.25\n%s\n' "$go_version" | sort -V | head -n1)" != 1.25 ]; then
-    echo "需要 Go 1.25+，当前为 $go_version。" >&2
+  if [ "$(printf '1.26\n%s\n' "$go_version" | sort -V | head -n1)" != 1.26 ]; then
+    echo "需要 Go 1.26+，当前为 $go_version。" >&2
     exit 1
   fi
   repo_url="https://github.com/$OWNER/$REPOSITORY.git"
