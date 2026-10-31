@@ -21,11 +21,11 @@ check:
 	sh -n $(PKGROOT)/usr/bin/sparkstore
 	sh -n $(PKGROOT)/DEBIAN/postinst
 	sh -n $(PKGROOT)/DEBIAN/postrm
-	sh -n scripts/build-dist.sh
-	sh -n scripts/install-sparkstore.sh
-	sh -n scripts/publish-aur.sh
-	sh -n scripts/sync-all.sh
-	sh -n scripts/check-version.sh
+	bash -n scripts/build-dist.sh
+	bash -n scripts/install-sparkstore.sh
+	bash -n scripts/publish-aur.sh
+	bash -n scripts/sync-all.sh
+	bash -n scripts/check-version.sh
 	go test ./...
 	go vet ./...
 	go build ./...
