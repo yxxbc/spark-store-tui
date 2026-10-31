@@ -195,6 +195,12 @@ type Terminal interface {
 
 任务快照保存在 `SPARKSTORE_CONFIG_DIR`（默认 `~/.config/sparkstore/tasks.json`），写临时文件后 rename，进程崩溃不会留下半截 JSON。`0.8.x` 的路径保持不变，升级后可继续恢复中断任务。
 
+## 机器可读 schema
+
+- [`schema/applist.schema.json`](schema/applist.schema.json)
+- [`schema/categories.schema.json`](schema/categories.schema.json)
+- [`schema/download-task.schema.json`](schema/download-task.schema.json)
+
 ## 扩展新的数据源
 
 1. 在 `internal/catalog` 实现 `Provider`（按需实现 `CategoryProvider`）。

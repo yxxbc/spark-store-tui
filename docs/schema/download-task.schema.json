@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitee.com/spark-store-project/spark-store-tui/docs/schema/download-task.schema.json",
+  "title": "sparkstore tasks.json",
+  "description": "Array persisted at SPARKSTORE_CONFIG_DIR/tasks.json.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string" },
+      "app_id": { "type": "string" },
+      "source_id": { "type": "string" },
+      "mirror_id": { "type": "string" },
+      "url": { "type": "string" },
+      "destination": { "type": "string" },
+      "expected_sha256": { "type": "string" },
+      "expected_sha1": { "type": "string" },
+      "bytes_completed": { "type": "integer", "minimum": 0 },
+      "bytes_total": { "type": "integer", "minimum": 0 },
+      "status": {
+        "enum": ["queued", "running", "completed", "failed", "interrupted", "cancelled", "verifying"]
+      },
+      "error": { "type": "string" },
+      "created_at": { "type": "string", "format": "date-time" },
+      "updated_at": { "type": "string", "format": "date-time" }
+    },
+    "required": ["id", "app_id", "destination", "status", "created_at", "updated_at"]
+  }
+}
