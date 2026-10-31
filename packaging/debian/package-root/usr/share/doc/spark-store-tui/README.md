@@ -60,7 +60,7 @@ Arch、Fedora/RHEL 与 openSUSE 通过 Amber APM 安装；`P` 使用 `apm policy
 ### 一键安装（国内镜像默认）
 
 ```bash
-bash <(curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/master/scripts/install-sparkstore.sh) --mirror gitee
+bash <(curl -fsSL https://gitee.com/spark-store-project/spark-store-tui/raw/main/scripts/install-sparkstore.sh) --mirror gitee
 ```
 
 安装器会检测发行版和 CPU 架构；Debian 系会先补齐并校验官方 `aptss`，再下载并校验对应发行包。新版优先使用 Release 的 `SHA256SUMS` 校验；缺少本机架构附件时，会询问是否从同一 tag 的源码构建。非交互执行默认使用 Gitee，源码回退构建默认使用 `https://goproxy.cn,direct`。
