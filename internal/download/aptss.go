@@ -9,9 +9,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/packages"
-	"github.com/Xynrin/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/packages"
+	"github.com/yxxbc/spark-store-tui/internal/platform"
 )
 
 // APTSSDownloader delegates Debian package retrieval to Spark Store's official

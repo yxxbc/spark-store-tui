@@ -62,9 +62,9 @@ PKGROOT=packaging/debian/package-root
 SOURCE_DIR="$PKGNAME-source-$VERSION"
 SOURCE_TAR="$SOURCE_DIR-r$SOURCE_REVISION.tar.gz"
 LDFLAGS="-s -w \
-  -X github.com/Xynrin/spark-store-tui/internal/version.Version=$VERSION \
-  -X github.com/Xynrin/spark-store-tui/internal/version.Commit=$COMMIT \
-  -X github.com/Xynrin/spark-store-tui/internal/version.Date=$BUILD_DATE"
+  -X github.com/yxxbc/spark-store-tui/internal/version.Version=$VERSION \
+  -X github.com/yxxbc/spark-store-tui/internal/version.Commit=$COMMIT \
+  -X github.com/yxxbc/spark-store-tui/internal/version.Date=$BUILD_DATE"
 
 sha256_of() {
   if command -v sha256sum >/dev/null 2>&1; then
@@ -178,7 +178,7 @@ if [ "$SKIP_RPM" -eq 0 ]; then
     cp "$OUT/$SOURCE_TAR" "$topdir/SOURCES/"
     sed -e "s|^Version:.*|Version:        $VERSION|" \
       -e "s|^Release:.*|Release:        $RPM_RELEASE%{?dist}|" \
-      -e "s|^Source0:.*|Source0:        https://github.com/Xynrin/spark-store-tui/releases/download/v$VERSION/$SOURCE_TAR|" \
+      -e "s|^Source0:.*|Source0:        https://github.com/yxxbc/spark-store-tui/releases/download/v$VERSION/$SOURCE_TAR|" \
       packaging/rpm/spark-store-tui.spec > "$topdir/SPECS/$PKGNAME.spec"
     rpmbuild -bb --nodeps --target "$target" --define "_topdir $topdir" "$topdir/SPECS/$PKGNAME.spec"
     find "$topdir/RPMS" -name '*.rpm' -exec cp {} "$OUT/" \;

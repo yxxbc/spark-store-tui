@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/Xynrin/spark-store-tui/internal/domain"
+import "github.com/yxxbc/spark-store-tui/internal/domain"
 
 type appsLoadedMsg struct {
 	sourceID string

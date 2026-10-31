@@ -7,11 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Xynrin/spark-store-tui/internal/catalog"
-	"github.com/Xynrin/spark-store-tui/internal/config"
-	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/packages"
-	"github.com/Xynrin/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/catalog"
+	"github.com/yxxbc/spark-store-tui/internal/config"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/packages"
+	"github.com/yxxbc/spark-store-tui/internal/platform"
 )
 
 // Downloader is the download capability the application layer needs. Both the

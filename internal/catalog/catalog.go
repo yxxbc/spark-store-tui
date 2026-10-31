@@ -3,7 +3,7 @@ package catalog
 import (
 	"context"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
 // Query expresses source-neutral browsing intent. Providers may reject fields

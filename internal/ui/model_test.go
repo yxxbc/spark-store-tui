@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
 func TestFilteredAppsMatchesNameAndDescription(t *testing.T) {

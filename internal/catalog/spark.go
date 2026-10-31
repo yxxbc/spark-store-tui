@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
 // SparkMetadataProvider reads the documented Spark/APM metadata files. It is

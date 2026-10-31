@@ -8,8 +8,8 @@ import (
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/preview"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/preview"
 )
 
 type focusPane int

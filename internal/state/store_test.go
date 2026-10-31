@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
 func TestTaskStoreUpsertReplacesExistingTask(t *testing.T) {

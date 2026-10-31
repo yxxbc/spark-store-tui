@@ -42,7 +42,8 @@ jobs:
           cache: true
       - name: Vulnerability scan
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          version="v1.7.0"
+          go install "golang.org/x/vuln/cmd/govulncheck@${version}"
           govulncheck ./...
 
   cross-build:
@@ -61,7 +62,7 @@ jobs:
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} \
             go build -trimpath -buildvcs=false \
-            -ldflags "-X github.com/Xynrin/spark-store-tui/internal/version.Version=$(cat VERSION)" \
+            -ldflags "-X github.com/yxxbc/spark-store-tui/internal/version.Version=$(cat VERSION)" \
             -o "sparkstore-linux-${{ matrix.goarch }}" ./cmd/sparkstore
 
   dist-smoke:

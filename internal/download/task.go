@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
 // TaskStore is the persistence boundary shared by both downloaders. The state

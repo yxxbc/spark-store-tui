@@ -5,9 +5,9 @@ set -euo pipefail
 
 RELEASE_VERSION="${SPARKSTORE_VERSION:-0.9.0}"
 MIRROR="${SPARKSTORE_MIRROR:-}"
-OWNER="Xynrin"
+OWNER="yxxbc"
 REPOSITORY="spark-store-tui"
-GITEE_OWNER="spark-store-project"
+GITEE_OWNER="${GITEE_OWNER:-spark-store-project}"
 TEMP_DIR=""
 LINUX_COMMAND_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 

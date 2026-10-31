@@ -6,15 +6,15 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/Xynrin/spark-store-tui/internal/app"
-	"github.com/Xynrin/spark-store-tui/internal/catalog"
-	"github.com/Xynrin/spark-store-tui/internal/config"
-	"github.com/Xynrin/spark-store-tui/internal/download"
-	"github.com/Xynrin/spark-store-tui/internal/packages"
-	"github.com/Xynrin/spark-store-tui/internal/platform"
-	"github.com/Xynrin/spark-store-tui/internal/state"
-	"github.com/Xynrin/spark-store-tui/internal/ui"
-	"github.com/Xynrin/spark-store-tui/internal/version"
+	"github.com/yxxbc/spark-store-tui/internal/app"
+	"github.com/yxxbc/spark-store-tui/internal/catalog"
+	"github.com/yxxbc/spark-store-tui/internal/config"
+	"github.com/yxxbc/spark-store-tui/internal/download"
+	"github.com/yxxbc/spark-store-tui/internal/packages"
+	"github.com/yxxbc/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/state"
+	"github.com/yxxbc/spark-store-tui/internal/ui"
+	"github.com/yxxbc/spark-store-tui/internal/version"
 )
 
 func main() {

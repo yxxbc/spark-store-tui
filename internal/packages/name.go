@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/platform"
 )
 
 // PackageName returns the package-manager name. Spark directory names are not

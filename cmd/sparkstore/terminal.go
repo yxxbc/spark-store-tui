@@ -4,7 +4,7 @@ import (
 	"os/exec"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/Xynrin/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
 // terminal is the only place that turns a domain.Command into a process. It

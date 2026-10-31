@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: spark-store-tui
-Source: https://github.com/Xynrin/spark-store-tui
+Source: https://github.com/yxxbc/spark-store-tui
 
 Files: *
 Copyright: 2026 Xynrin

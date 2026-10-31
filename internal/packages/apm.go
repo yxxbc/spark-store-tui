@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/platform"
 )
 
 // APM is the Amber Package Manager backend used on Arch, RPM and openSUSE

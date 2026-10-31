@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/platform"
 )
 
 // MetalinkDownloader resolves Spark Metalink documents and transfers the

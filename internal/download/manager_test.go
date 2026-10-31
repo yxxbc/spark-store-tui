@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
 type memoryStore struct{ tasks []domain.DownloadTask }

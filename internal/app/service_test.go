@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Xynrin/spark-store-tui/internal/catalog"
-	"github.com/Xynrin/spark-store-tui/internal/config"
-	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/catalog"
+	"github.com/yxxbc/spark-store-tui/internal/config"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/platform"
 )
 
 type fakeCatalog struct{ query catalog.Query }

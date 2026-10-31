@@ -5,7 +5,7 @@ pkgver=@VERSION@
 pkgrel=@AUR_RELEASE@
 pkgdesc='Native terminal UI for Spark Store software management'
 arch=('x86_64' 'aarch64' 'loong64')
-url='https://github.com/Xynrin/spark-store-tui'
+url='https://github.com/yxxbc/spark-store-tui'
 license=('GPL-3.0-only')
 makedepends=('go')
 depends=('ca-certificates' 'amber-package-manager>=1.2.2')
@@ -13,7 +13,7 @@ optdepends=(
   'chafa: terminal image previews'
   'sudo: install and uninstall local packages as a non-root user'
 )
-source=("${pkgname}-source-${pkgver}-r@SOURCE_REVISION@.tar.gz::https://github.com/Xynrin/${pkgname}/releases/download/v${pkgver}/${pkgname}-source-${pkgver}-r@SOURCE_REVISION@.tar.gz")
+source=("${pkgname}-source-${pkgver}-r@SOURCE_REVISION@.tar.gz::https://github.com/yxxbc/${pkgname}/releases/download/v${pkgver}/${pkgname}-source-${pkgver}-r@SOURCE_REVISION@.tar.gz")
 sha256sums=('@SOURCE_SHA256@')
 
 build() {

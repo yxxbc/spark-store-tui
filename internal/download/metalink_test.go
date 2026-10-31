@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/state"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/state"
 )
 
 func TestResolveMetalinkRanksPreferences(t *testing.T) {

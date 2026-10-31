@@ -1,4 +1,4 @@
-module github.com/Xynrin/spark-store-tui
+module github.com/yxxbc/spark-store-tui
 
 go 1.25.0
 

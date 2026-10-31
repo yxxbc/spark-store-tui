@@ -1,6 +1,6 @@
 package catalog
 
-import "github.com/Xynrin/spark-store-tui/internal/domain"
+import "github.com/yxxbc/spark-store-tui/internal/domain"
 
 // BuiltinSources exposes the single catalog used by the client. Download
 // mirrors come from this catalog's Metalink documents, not extra app sources.
