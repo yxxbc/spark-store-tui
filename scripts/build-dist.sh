@@ -24,6 +24,7 @@ RPM_TARGETS=${RPM_TARGETS:-"x86_64 aarch64 loongarch64"}
 SKIP_DEB=0
 SKIP_RPM=0
 SKIP_SOURCE=0
+AUR_ONLY=0
 
 usage() {
   cat <<'EOF'
@@ -32,6 +33,7 @@ Usage: scripts/build-dist.sh [options]
   --skip-deb             do not build Debian packages
   --skip-rpm             do not build RPM packages
   --skip-source          do not build the source archive
+  --aur-only             render dist/aur from an existing source archive
   --deb-archs "..."      Debian architectures (default: amd64 arm64 loong64)
   --rpm-targets "..."    RPM targets (default: x86_64 aarch64 loongarch64)
   --out DIR              output directory (default: dist)
@@ -44,6 +46,7 @@ while [ "$#" -gt 0 ]; do
     --skip-deb) SKIP_DEB=1 ;;
     --skip-rpm) SKIP_RPM=1 ;;
     --skip-source) SKIP_SOURCE=1 ;;
+    --aur-only) AUR_ONLY=1 ;;
     --deb-archs) DEB_ARCHS="$2"; shift ;;
     --rpm-targets) RPM_TARGETS="$2"; shift ;;
     --out) OUT="$2"; shift ;;
@@ -81,10 +84,42 @@ goarch_for_deb() {
   esac
 }
 
+if [ "$AUR_ONLY" -eq 1 ]; then
+  SKIP_DEB=1
+  SKIP_RPM=1
+  SKIP_SOURCE=1
+fi
+
 mkdir -p "$OUT"
 OUT_ABS=$(cd "$OUT" && pwd)
-rm -f "$OUT"/spark-store-tui_*.deb "$OUT"/spark-store-tui-*.rpm "$OUT"/spark-store-tui-source-*.tar.gz "$OUT"/SHA256SUMS
-rm -rf "$OUT/aur"
+if [ "$AUR_ONLY" -eq 0 ]; then
+  [ "$SKIP_DEB" -eq 1 ] || rm -f "$OUT"/spark-store-tui_*.deb
+  [ "$SKIP_RPM" -eq 1 ] || rm -f "$OUT"/spark-store-tui-*.rpm
+  [ "$SKIP_SOURCE" -eq 1 ] || rm -f "$OUT"/spark-store-tui-source-*.tar.gz
+  rm -f "$OUT/SHA256SUMS"
+  rm -rf "$OUT/aur"
+fi
+
+render_aur() {
+  [ -f "$OUT/$SOURCE_TAR" ] || { echo "source archive missing: $OUT/$SOURCE_TAR" >&2; exit 1; }
+  source_sha256=$(sha256_of "$OUT/$SOURCE_TAR")
+  mkdir -p "$OUT/aur"
+  sed -e "s|@VERSION@|$VERSION|g" \
+    -e "s|@AUR_RELEASE@|$AUR_PKGREL|g" \
+    -e "s|@SOURCE_REVISION@|$SOURCE_REVISION|g" \
+    -e "s|@SOURCE_SHA256@|$source_sha256|g" \
+    packaging/aur/PKGBUILD.in > "$OUT/aur/PKGBUILD"
+  sed -e "s|@VERSION@|$VERSION|g" \
+    -e "s|@AUR_RELEASE@|$AUR_PKGREL|g" \
+    -e "s|@SOURCE_REVISION@|$SOURCE_REVISION|g" \
+    -e "s|@SOURCE_SHA256@|$source_sha256|g" \
+    packaging/aur/SRCINFO.in > "$OUT/aur/.SRCINFO"
+}
+
+if [ "$AUR_ONLY" -eq 1 ]; then
+  render_aur
+  exit 0
+fi
 
 # 1. Source archive. A clean tree uses git archive for reproducibility; a dirty
 # tree falls back to tar so release candidates can be exercised locally.
@@ -154,18 +189,7 @@ fi
 # 4. AUR files are rendered from the same source archive, so the checksum can
 # never drift from the published tarball.
 if [ -f "$OUT/$SOURCE_TAR" ]; then
-  source_sha256=$(sha256_of "$OUT/$SOURCE_TAR")
-  mkdir -p "$OUT/aur"
-  sed -e "s|@VERSION@|$VERSION|g" \
-    -e "s|@AUR_RELEASE@|$AUR_PKGREL|g" \
-    -e "s|@SOURCE_REVISION@|$SOURCE_REVISION|g" \
-    -e "s|@SOURCE_SHA256@|$source_sha256|g" \
-    packaging/aur/PKGBUILD.in > "$OUT/aur/PKGBUILD"
-  sed -e "s|@VERSION@|$VERSION|g" \
-    -e "s|@AUR_RELEASE@|$AUR_PKGREL|g" \
-    -e "s|@SOURCE_REVISION@|$SOURCE_REVISION|g" \
-    -e "s|@SOURCE_SHA256@|$source_sha256|g" \
-    packaging/aur/SRCINFO.in > "$OUT/aur/.SRCINFO"
+  render_aur
 fi
 
 # 5. Checksums over every binary artifact.
