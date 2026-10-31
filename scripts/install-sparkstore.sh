@@ -3,7 +3,7 @@
 # Gitee release mirror and never silently installs an older AUR package.
 set -euo pipefail
 
-RELEASE_VERSION="${SPARKSTORE_VERSION:-0.8.3}"
+RELEASE_VERSION="${SPARKSTORE_VERSION:-0.9.0}"
 MIRROR="${SPARKSTORE_MIRROR:-}"
 OWNER="Xynrin"
 REPOSITORY="spark-store-tui"
@@ -19,8 +19,8 @@ usage() {
 Usage: install-sparkstore.sh [--mirror github|gitee]
 
 Environment:
-  SPARKSTORE_VERSION  Version without v prefix (default: 0.8.3)
-  SPARKSTORE_MIRROR   github or gitee
+  SPARKSTORE_VERSION  Version without v prefix (default: 0.9.0)
+  SPARKSTORE_MIRROR   github or gitee (default: gitee for non-interactive use)
 EOF
 }
 
@@ -36,6 +36,11 @@ if [ "$(uname -s)" != Linux ]; then
   echo '此安装器仅支持 Linux。' >&2
   exit 1
 fi
+
+# The version becomes part of URLs and tags; accept only digits and dots.
+case "$RELEASE_VERSION" in
+  ''|*[!0-9.]*) echo "无效的版本号：$RELEASE_VERSION" >&2; exit 2 ;;
+esac
 
 SUDO=()
 if [ "$(id -u)" -ne 0 ]; then
@@ -156,13 +161,19 @@ if [ "$FAMILY" = arch ]; then
 fi
 
 if [ -z "$MIRROR" ]; then
-  printf '选择下载网络 [1] GitHub  [2] Gitee： '
-  read -r choice
-  case "$choice" in
-    1|github|GitHub) MIRROR="github" ;;
-    2|gitee|Gitee) MIRROR="gitee" ;;
-    *) echo '请输入 1 或 2。' >&2; exit 2 ;;
-  esac
+  # Non-interactive installs default to Gitee, which is reachable for users in
+  # mainland China without extra configuration.
+  if [ -t 0 ]; then
+    printf '选择下载网络 [1] GitHub  [2] Gitee（默认）： '
+    read -r choice || choice=""
+    case "$choice" in
+      ""|2|gitee|Gitee) MIRROR="gitee" ;;
+      1|github|GitHub) MIRROR="github" ;;
+      *) echo '请输入 1 或 2。' >&2; exit 2 ;;
+    esac
+  else
+    MIRROR="gitee"
+  fi
 fi
 case "$MIRROR" in github|gitee) ;; *) echo '镜像只能是 github 或 gitee。' >&2; exit 2 ;; esac
 
@@ -189,7 +200,7 @@ download() {
   destination="$1"; shift
   for url in "$@"; do
     rm -f "$destination"
-    if curl --fail --location --retry 2 --connect-timeout 15 --output "$destination" "$url"; then
+    if curl --fail --location --proto '=https' --tlsv1.2 --retry 2 --connect-timeout 15 --output "$destination" "$url"; then
       return 0
     fi
   done
@@ -201,6 +212,17 @@ verify() {
   [ -n "$expected" ] || return 0
   actual=$(sha256sum "$file" | awk '{print $1}')
   [ "$actual" = "$expected" ] || { echo "SHA-256 校验失败：$file" >&2; exit 1; }
+}
+
+# Prefer the published SHA256SUMS so new releases are verified without
+# pinning every checksum in this script. Historical versions keep their pinned
+# checksum when the sums asset is unavailable.
+verify_asset() {
+  file="$1" expected="$2" asset="$3"
+  if [ -z "$expected" ] && download "$TEMP_DIR/SHA256SUMS" "$(release_url SHA256SUMS)"; then
+    expected=$(awk -v name="$asset" '$2 == name { print $1; exit }' "$TEMP_DIR/SHA256SUMS")
+  fi
+  verify "$file" "$expected"
 }
 
 # Debian application download, installation and updates are delegated to Spark
@@ -279,11 +301,24 @@ install_source() {
   git -C "$TEMP_DIR/source" remote add origin "$repo_url"
   git -C "$TEMP_DIR/source" fetch --depth 1 origin "$source_ref"
   git -C "$TEMP_DIR/source" checkout -q --detach FETCH_HEAD
+  # Mainland users get a domestic Go module proxy unless they already chose one.
+  export GOPROXY="${GOPROXY:-https://goproxy.cn,direct}"
+  build_target="./cmd/sparkstore"
+  [ "$RELEASE_VERSION" = '0.8.3' ] && build_target="./cmd/spark-store-tui"
   (
     cd "$TEMP_DIR/source"
-    go build -buildvcs=false -o sparkstore ./cmd/spark-store-tui
+    go build -buildvcs=false -o sparkstore "$build_target"
     "${SUDO[@]}" install -Dm755 sparkstore /usr/local/bin/sparkstore
+    if [ "$RELEASE_VERSION" != '0.8.3' ]; then
+      "${SUDO[@]}" install -Dm644 packaging/debian/package-root/usr/share/applications/sparkstore.desktop \
+        /usr/share/applications/sparkstore.desktop
+      "${SUDO[@]}" install -Dm644 packaging/debian/package-root/usr/share/icons/hicolor/256x256/apps/sparkstore.png \
+        /usr/share/icons/hicolor/256x256/apps/sparkstore.png
+    fi
   )
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    "${SUDO[@]}" update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+  fi
   ensure_image_preview
   [ "$FAMILY" != rpm ] || ensure_amber_runtime
   echo '安装完成：/usr/local/bin/sparkstore'
@@ -308,7 +343,7 @@ case "$FAMILY" in
     [ "$asset" = 'spark-store-tui_0.8.3-3_arm64.deb' ] && checksum='d8bbd8124bf63b1ea4730a3693c46664c198de82d5ff7c11353666ec978fc2ae'
     [ "$asset" = 'spark-store-tui_0.8.3-3_loong64.deb' ] && checksum='c50b8922af477c8db58d778a640b73f82d40eee31a6cdc67ac3b3b1255199891'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
-      verify "$TEMP_DIR/$asset" "$checksum"
+      verify_asset "$TEMP_DIR/$asset" "$checksum" "$asset"
       ensure_debian_backend
       "${SUDO[@]}" apt-get install -y "$TEMP_DIR/$asset"
       ensure_image_preview
@@ -340,7 +375,7 @@ case "$FAMILY" in
     [ "$asset" = 'spark-store-tui-0.8.3-4.aarch64.rpm' ] && checksum='40b5519c141fc5acb51c1b414144da754d09fbd94a6e0a3de1f7f3f9cf56896f'
     [ "$asset" = 'spark-store-tui-0.8.3-4.loongarch64.rpm' ] && checksum='3f88ae8fb8dc16dd3a11401ef529499e426f5181a48161c120721d4a3010a051'
     if download "$TEMP_DIR/$asset" "$(release_url "$asset")"; then
-      verify "$TEMP_DIR/$asset" "$checksum"
+      verify_asset "$TEMP_DIR/$asset" "$checksum" "$asset"
       if [ "$FAMILY" = rpm ]; then
         "${SUDO[@]}" dnf install -y "$TEMP_DIR/$asset"
       else

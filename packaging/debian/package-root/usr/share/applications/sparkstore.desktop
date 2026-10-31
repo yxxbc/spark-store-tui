@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Spark Store TUI
+Name[zh_CN]=星火终端助手
+Comment=Browse, download and manage Spark Store packages in a terminal
+Comment[zh_CN]=在终端中浏览、下载和管理星火商店应用
+Exec=sparkstore
+Icon=sparkstore
+Terminal=true
+Categories=System;PackageManager;
+Keywords=spark;store;package;aptss;apm;terminal;
+Keywords[zh_CN]=星火;商店;软件;安装;终端;
+StartupNotify=true

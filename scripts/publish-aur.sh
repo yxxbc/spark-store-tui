@@ -2,12 +2,18 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+aur_source="$root/dist/aur"
+if [ ! -f "$aur_source/PKGBUILD" ] || [ ! -f "$aur_source/.SRCINFO" ]; then
+  echo "dist/aur is missing; run scripts/build-dist.sh first." >&2
+  exit 1
+fi
+
 workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"' EXIT
 
 git clone ssh://aur@aur.archlinux.org/spark-store-tui.git "$workdir/spark-store-tui"
-install -m 0644 "$root/packaging/aur/PKGBUILD" "$workdir/spark-store-tui/PKGBUILD"
-install -m 0644 "$root/packaging/aur/.SRCINFO" "$workdir/spark-store-tui/.SRCINFO"
+install -m 0644 "$aur_source/PKGBUILD" "$workdir/spark-store-tui/PKGBUILD"
+install -m 0644 "$aur_source/.SRCINFO" "$workdir/spark-store-tui/.SRCINFO"
 
 cd "$workdir/spark-store-tui"
 git config user.name "${GIT_AUTHOR_NAME:-Xynrin}"

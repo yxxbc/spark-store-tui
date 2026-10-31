@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Xynrin/spark-store-tui/internal/domain"
-	"github.com/Xynrin/spark-store-tui/internal/system"
 )
 
 func TestFilteredAppsMatchesNameAndDescription(t *testing.T) {
@@ -41,7 +40,7 @@ func TestTruncate(t *testing.T) {
 }
 
 func TestRecoveredDownloadsLeaveModelOperable(t *testing.T) {
-	model := New(nil, nil, system.Host{}, nil).WithRecoveredDownloads([]domain.DownloadTask{
+	model := New(nil, nil).WithRecoveredDownloads([]domain.DownloadTask{
 		{Status: domain.TaskInterrupted},
 		{Status: domain.TaskCompleted},
 	})
@@ -54,7 +53,7 @@ func TestPackageStatusOffersSelectedAppUpdate(t *testing.T) {
 	model := Model{apps: []domain.App{{ID: "code", Name: "Code"}}}
 	updated, command := model.Update(packageStatusMsg{
 		appID: "code",
-		status: system.AppPackageStatus{
+		status: domain.PackageStatus{
 			PackageName: "code", Installed: true, InstalledVersion: "1.0", CandidateVersion: "1.1", UpdateAvailable: true,
 		},
 	})
@@ -70,7 +69,7 @@ func TestPackageStatusOffersSelectedAppUpdate(t *testing.T) {
 func TestPackageStatusReportsUninstalledApp(t *testing.T) {
 	model := Model{apps: []domain.App{{ID: "code", Name: "Code"}}, checkingPackage: true}
 	updated, _ := model.Update(packageStatusMsg{
-		appID: "code", status: system.AppPackageStatus{PackageName: "code", CandidateVersion: "1.1"},
+		appID: "code", status: domain.PackageStatus{PackageName: "code", CandidateVersion: "1.1"},
 	})
 	got := updated.(Model)
 	if got.pendingUpdate || got.checkingPackage || !strings.Contains(got.status, "尚未安装") {

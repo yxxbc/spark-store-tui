@@ -25,6 +25,7 @@ type DownloadTask struct {
 	URL            string     `json:"url"`
 	Destination    string     `json:"destination"`
 	ExpectedSHA256 string     `json:"expected_sha256,omitempty"`
+	ExpectedSHA1   string     `json:"expected_sha1,omitempty"`
 	BytesCompleted int64      `json:"bytes_completed"`
 	BytesTotal     int64      `json:"bytes_total,omitempty"`
 	Status         TaskStatus `json:"status"`

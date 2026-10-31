@@ -29,7 +29,7 @@ func (s *readableMemoryStore) Load() ([]domain.DownloadTask, error) {
 func TestAPTSSPrepareDownloadUsesPublishedPackageAndVersion(t *testing.T) {
 	directory := t.TempDir()
 	store := &readableMemoryStore{}
-	service := NewAPTSSService(store, directory)
+	service := NewAPTSSDownloader(store, directory)
 	service.command = filepath.Join(directory, "aptss")
 	app := domain.App{
 		ID:           "vscode",
@@ -40,30 +40,36 @@ func TestAPTSSPrepareDownloadUsesPublishedPackageAndVersion(t *testing.T) {
 		Architecture: "amd64-store",
 	}
 
-	process, task, err := service.PrepareDownload(app)
+	plan, err := service.Prepare(app)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := process.Args, []string{service.command, "download", "code=1.128.0-1783465401"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("arguments = %q, want %q", got, want)
+	want := domain.Command{
+		Path: service.command,
+		Args: []string{"download", "code=1.128.0-1783465401"},
+		Dir:  directory,
 	}
-	if process.Dir != directory || task.Destination != filepath.Join(directory, app.Filename) || task.Status != domain.TaskRunning {
-		t.Fatalf("process = %+v, task = %+v", process, task)
+	if !reflect.DeepEqual(plan.Command, want) {
+		t.Fatalf("command = %+v, want %+v", plan.Command, want)
 	}
-	if len(store.tasks) != 1 || store.tasks[0].MirrorID != "aptss" {
+	if len(store.tasks) != 1 {
 		t.Fatalf("stored tasks = %+v", store.tasks)
+	}
+	task := store.tasks[0]
+	if task.Destination != filepath.Join(directory, app.Filename) || task.Status != domain.TaskRunning || task.MirrorID != "aptss" {
+		t.Fatalf("task = %+v", task)
 	}
 }
 
 func TestAPTSSFinishDownloadAndExistingPath(t *testing.T) {
 	directory := t.TempDir()
-	service := NewAPTSSService(&readableMemoryStore{}, directory)
+	service := NewAPTSSDownloader(&readableMemoryStore{}, directory)
 	app := domain.App{ID: "code", PackageName: "code", Filename: "code_1_amd64.deb"}
 	task := service.newTask(app, "code=1")
 	if err := os.WriteFile(task.Destination, []byte("deb"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	completed, err := service.FinishDownload(task, nil)
+	completed, err := service.finish(task, nil)
 	if err != nil || completed.Status != domain.TaskCompleted {
 		t.Fatalf("completed = %+v, err = %v", completed, err)
 	}
@@ -84,8 +90,8 @@ func TestAPTSSInterruptedAria2DownloadIsRecovered(t *testing.T) {
 	store := &readableMemoryStore{tasks: []domain.DownloadTask{{
 		ID: "task", AppID: "code", Destination: destination, Status: domain.TaskRunning,
 	}}}
-	service := NewAPTSSService(store, directory)
-	recovered, err := service.RecoverInterrupted()
+	service := NewAPTSSDownloader(store, directory)
+	recovered, err := service.Recover()
 	if err != nil || len(recovered) != 1 || recovered[0].Status != domain.TaskInterrupted {
 		t.Fatalf("recovered = %+v, err = %v", recovered, err)
 	}
@@ -95,9 +101,9 @@ func TestAPTSSInterruptedAria2DownloadIsRecovered(t *testing.T) {
 }
 
 func TestAPTSSRejectsWrongArchitecture(t *testing.T) {
-	service := NewAPTSSService(nil, t.TempDir())
+	service := NewAPTSSDownloader(nil, t.TempDir())
 	service.command = "aptss"
-	_, _, err := service.PrepareDownload(domain.App{
+	_, err := service.Prepare(domain.App{
 		Name: "Wrong", PackageName: "wrong", Filename: "wrong_1_amd64.deb", Architecture: "loong64-store",
 	})
 	if err == nil {

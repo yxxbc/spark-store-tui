@@ -1,25 +1,41 @@
-# spark-store-tui v0.8.3
+# spark-store-tui v0.9.0
 
-## Debian revision 0.8.3-3
+0.9.0 是一次内部架构重写，用户可见的目录、下载与安装流程保持不变。
 
-- Delegate Debian application download, resume, repository digest verification, installation and removal to official `aptss`.
-- Add per-application installed/candidate version checks and confirmed upgrades with `aptss` or Amber APM.
-- Recover interrupted aria2 downloads after restart and show native aptss download progress outside the full-screen TUI.
-- Publish source revision r4 and RPM revision 4; AUR pkgrel 5 carries the same selected-application update flow through Amber APM.
+## 架构
 
-## Debian revision 0.8.3-2
+- 新增 `internal/app` 用例层，统一目录加载、下载、安装、更新、卸载与状态查询。
+- 新增 `internal/packages` 包后端抽象：Debian 使用 aptss，Arch/RPM/openSUSE 使用 Amber APM。
+- 新增 `internal/config` 与 `internal/version`；`sparkstore --version` 输出版本、提交与构建时间。
+- UI 只依赖 `domain` 与 `preview`，通过 `Service`/`Terminal` 端口与业务层交互。
+- 合并 Metalink 与 aptss 下载任务的重复逻辑，中断恢复行为保持一致。
 
-- Depend on `aptss | spark-store` and bootstrap the verified official `aptss` package in the one-command installer.
-- Install downloaded Deb packages through official `ssinstall` with an `aptss` fallback, and use `aptss` for removal.
+## 安全
 
-## LoongArch release
+- 所有包操作使用参数列表，不经过 shell；非 root 统一 `sudo -- <backend>`。
+- 包名与包文件名白名单校验；删除安装包只允许下载目录内。
+- Metalink 限制 1 MiB、拒绝非 http(s)/带凭据 URL、路径穿越文件名。
+- 默认只接受 HTTPS；有 SHA-256 时优先校验，否则使用 SHA-1 做 HTTPS 传输完整性检查。
+- 远程图片限制 12 MiB、要求 `image/*`、缓存目录 `0700`。
+- Release 提供 `SHA256SUMS`，安装器优先按它校验。
 
-- Add `loong64` Debian package and `loongarch64` RPM package.
-- Fix LoongArch catalog routing; reject incompatible architecture packages before downloading.
+## 体验
 
-- 重构为 Go 原生 TUI，应用目录收敛为 Spark Store。
-- 下载任务持久化；重启后识别完成包和中断 `.part`，按 `D` 可继续。
-- 下载传输无数据超时后会失败并允许重试，避免无限卡住。
-- root 身份运行时不再调用 `sudo`，修复 Ubuntu `sudo-rs` 的 DBUS 环境误解析问题。
-- Release 同时提供 Deb `amd64` / `arm64` / `loong64` 与 RPM `x86_64` / `aarch64` / `loongarch64`；AUR 从源码构建本机二进制。
-- 标准启动命令为 `sparkstore`；保留 `SparkStore`、`SPARKSTORE`、`spark-store-tui` 兼容入口。
+- 图片预览优先使用 Kitty/iTerm2/WezTerm/Ghostty 原生协议直出原图，其余终端回退 chafa。
+- 安装包新增 `.desktop` 与 hicolor 图标，可从应用菜单或软件中心启动。
+- 国内用户：一键安装默认 Gitee，源码回退默认 `goproxy.cn`；Release 同步 Gitee/CNB。
+
+## 发布
+
+- Debian：`spark-store-tui_0.9.0-1_{amd64,arm64,loong64}.deb`
+- RPM：`spark-store-tui-0.9.0-1.{x86_64,aarch64,loongarch64}.rpm`
+- 源码：`spark-store-tui-source-0.9.0-r1.tar.gz`
+- AUR：`pkgrel=1`
+- 校验：`SHA256SUMS`
+
+## 文档
+
+- `docs/architecture.md`
+- `docs/data-interfaces.md`
+- `docs/package-backends.md`
+- `SECURITY.md`

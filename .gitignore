@@ -1,7 +1,8 @@
 *.deb
+*.rpm
 *.tar.gz
-package-root/tmp/
-package-root/DEBIAN/md5sums
+packaging/debian/package-root/tmp/
+packaging/debian/package-root/DEBIAN/md5sums
 .cache/
 build/
 dist/
