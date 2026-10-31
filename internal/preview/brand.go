@@ -61,6 +61,9 @@ func DisplayURL(rawURL string, width, height int, wait bool) error {
 	if rendered == "" {
 		return fmt.Errorf("no image renderer is available")
 	}
+	if os.Getenv("SPARKSTORE_PREVIEW_DEBUG") == "1" {
+		fmt.Fprintf(os.Stderr, "sparkstore: preview protocol=%q source=%s\n", imageProtocol(), path)
+	}
 	// The TUI uses the alternate screen. Clear it first so the image is not
 	// drawn on top of the previous frame.
 	fmt.Print("\x1b[2J\x1b[H")
