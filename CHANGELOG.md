@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.1] - 2026-10-31
 
+### Changed
+
+- The app opens directly in the browser and loads the catalog on startup; the
+  Enter-gated home screen was removed.
+- Package actions are direct: `D` downloads (or installs an existing local
+  package), `I` installs, `P` checks and upgrades, `U` uninstalls and `X` deletes
+  the local package. Multi-step confirmation screens were removed.
+- A completed download is installed immediately.
+
 ### Fixed
 
 - Arrow keys now navigate the app list even when only one catalog source is
@@ -18,9 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The details pane now uses the standard store layout: the application icon
   (`icons`) and the first in-app screenshot (`img_urls`) are shown together,
   without a screenshot-switching key.
-- Native terminal image protocols (Kitty/iTerm2/WezTerm/Ghostty) are now rendered
-  outside bordered panels, so the image payload is no longer mangled by width
-  styling. Terminals without a native protocol still fall back to chafa.
+- In-TUI previews use chafa symbol art, because Bubble Tea v2's text renderer
+  strips terminal graphics escape sequences. Press `O` to open the original
+  screenshot outside the TUI with Kitty/iTerm2/WezTerm/Ghostty native protocols
+  (chafa fallback).
 - A two-column browser layout replaces the stacked panes, and short terminals get
   a compact details pane that cannot scroll the whole view.
 - Catalog rows are deduplicated by package name and unsafe filenames are
@@ -32,9 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Redraw the application icon and add an official-variant SVG derived from the
-  official Spark Store swirl; the variant is reserved for use after official
-  inclusion.
+- Use the Spark Store swirl with a small TUI badge as the current application
+  icon; keep the orange terminal mark as the alternative.
 
 ## [0.9.0] - 2026-10-31
 

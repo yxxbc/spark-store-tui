@@ -39,22 +39,26 @@ test. Please complete the manual checklist below in your own terminal.
 ## Manual checklist
 
 1. Home screen: the logo, detected host and "启动时不会安装软件" are visible.
-2. Press `Enter`: the app list and details load from live Spark metadata.
+2. The app opens directly in the browser and loads the catalog automatically;
+   no `Enter` is needed.
 3. Press `↓` / `↑` (or `j` / `k`): the selection moves; the details follow.
 4. Press `]` then `[`: the category changes, the selection resets and the list
    reloads. Arrow keys must keep moving the app selection.
 5. Press `/`, type `Code`, press `Enter`: the list filters; press `Esc`.
-6. Select an app with screenshots. On Kitty/iTerm2/WezTerm/Ghostty the original
-   screenshot should appear in the right column and a small icon next to the
-   app name; otherwise chafa art appears for both.
-7. The right pane shows the application icon and the first screenshot together,
-   in the standard store layout; there is no screenshot-switching key.
-8. Press `E`: the description expands and collapses.
-9. Resize the terminal to 100x30 and 80x24: the layout must not scroll the
-   header off-screen; short terminals show a compact details pane.
-10. Press `D` on an app: on macOS the backend is unavailable, so expect a clear
-    error instead of a crash. Press `P` / `U`: same.
-11. Press `q`: the process exits and restores the terminal.
+6. Select an app with screenshots. The right column shows a small chafa icon
+   next to the app name and chafa symbol art for the first screenshot.
+7. The right pane shows the application icon and the first screenshot as chafa
+   art in the standard store layout; there is no screenshot-switching key.
+8. Press `O`: the TUI suspends and the original screenshot is printed by the
+   terminal. Kitty/iTerm2/WezTerm/Ghostty use their native protocol; other
+   terminals fall back to chafa. Press Enter to return.
+9. Press `E`: the description expands and collapses.
+10. Resize the terminal to 100x30 and 80x24: the layout must not scroll the
+    header off-screen; short terminals show a compact details pane.
+11. Press `D` / `I` / `P` / `U` / `X` on an app: on macOS the backend is
+    unavailable, so expect a clear status message instead of a crash (for
+    example `X` reports that there is no local package).
+12. Press `q`: the process exits and restores the terminal.
 
 If an image does not appear, check `echo "$TERM $TERM_PROGRAM"` and whether
 `chafa` is installed. The native protocols are only used when the terminal

@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,6 +27,9 @@ func (f *fakeService) ExistingPackage(domain.App) string { return f.existing }
 func (f *fakeService) CanUninstall(domain.App) error     { return nil }
 func (f *fakeService) ImagePreviewAvailable() bool       { return false }
 func (f *fakeService) BootstrapCommand() (string, bool)  { return "sudo apt install chafa", true }
+func (f *fakeService) PreviewCommand(domain.App) (domain.Command, error) {
+	return domain.Command{Path: "sparkstore", Args: []string{"--preview-image", "s1.png"}}, nil
+}
 
 func (f *fakeService) ListCategories(context.Context, string) ([]domain.Category, error) {
 	return nil, nil
@@ -71,15 +75,14 @@ func TestDownloadKeyUsesAPMOnNonDebianHosts(t *testing.T) {
 		service:  service,
 		terminal: &fakeTerminal{},
 		apps:     []domain.App{{ID: "code", Name: "Code"}},
-		screen:   screenBrowse,
 		loadedAt: time.Now(),
 	}
 	updated, command := model.handleKey("d")
 	got := updated.(Model)
-	if !got.pendingInstall || command != nil {
-		t.Fatalf("pendingInstall = %v, command = %v", got.pendingInstall, command)
+	if command == nil || model.terminal.(*fakeTerminal).executed != 1 {
+		t.Fatalf("command = %v, executed = %d", command, model.terminal.(*fakeTerminal).executed)
 	}
-	if got.status != "将通过 Amber APM 安装：I 或 Enter 确认；Esc 取消" {
+	if got.status != "正在通过 Amber APM 安装…" {
 		t.Fatalf("status = %q", got.status)
 	}
 	if service.prepared != 0 {
@@ -94,7 +97,6 @@ func TestDownloadKeyPreparesAptssDownloadOnDebian(t *testing.T) {
 		service:  service,
 		terminal: terminal,
 		apps:     []domain.App{{ID: "code", Name: "Code"}},
-		screen:   screenBrowse,
 		loadedAt: time.Now(),
 	}
 	updated, command := model.handleKey("d")
@@ -104,32 +106,51 @@ func TestDownloadKeyPreparesAptssDownloadOnDebian(t *testing.T) {
 	}
 }
 
-func TestExistingPackagePromptsInsteadOfDownloading(t *testing.T) {
+func TestExistingPackageInstallsDirectly(t *testing.T) {
 	service := &fakeService{existing: "/tmp/downloads/code.deb"}
+	terminal := &fakeTerminal{}
 	model := Model{
 		service:  service,
-		terminal: &fakeTerminal{},
+		terminal: terminal,
 		apps:     []domain.App{{ID: "code", Name: "Code"}},
-		screen:   screenBrowse,
 		loadedAt: time.Now(),
 	}
 	updated, command := model.handleKey("d")
 	got := updated.(Model)
-	if !got.pendingExisting || got.pendingPackage != "/tmp/downloads/code.deb" || command != nil {
-		t.Fatalf("model = %+v, command = %v", got, command)
+	if command == nil || terminal.executed != 1 || service.prepared != 0 {
+		t.Fatalf("command = %v, executed = %d, prepared = %d", command, terminal.executed, service.prepared)
+	}
+	if got.pendingPackage != "/tmp/downloads/code.deb" {
+		t.Fatalf("pendingPackage = %q", got.pendingPackage)
 	}
 }
 
-func TestDeleteAfterUninstallReportsServiceError(t *testing.T) {
+func TestDeleteKeyReportsServiceError(t *testing.T) {
 	service := &fakeService{deleteErr: errors.New("permission denied")}
 	model := Model{
-		service:              service,
-		pendingPackage:       "/tmp/downloads/code.deb",
-		deleteAfterUninstall: true,
+		service:        service,
+		apps:           []domain.App{{ID: "code", Name: "Code"}},
+		pendingPackage: "/tmp/downloads/code.deb",
 	}
-	updated, _ := model.Update(uninstallFinishedMsg{})
+	updated, _ := model.handleKey("x")
 	got := updated.(Model)
-	if got.status != "已卸载应用，但删除安装包失败：permission denied" {
+	if got.status != "删除安装包失败：permission denied" {
 		t.Fatalf("status = %q", got.status)
+	}
+}
+
+func TestPreviewKeyOpensOriginal(t *testing.T) {
+	service := &fakeService{}
+	terminal := &fakeTerminal{}
+	model := Model{
+		service:  service,
+		terminal: terminal,
+		loadedAt: time.Now(),
+		apps:     []domain.App{{ID: "code", Name: "Code", ScreenshotURLs: []string{"s1.png"}}},
+	}
+	updated, command := model.handleKey("o")
+	got := updated.(Model)
+	if command == nil || terminal.executed != 1 || !strings.Contains(got.status, "原图") {
+		t.Fatalf("command = %v, executed = %d, status = %q", command, terminal.executed, got.status)
 	}
 }

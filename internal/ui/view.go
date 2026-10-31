@@ -12,46 +12,16 @@ import (
 	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
-func (m Model) View() tea.View { return tea.NewView(m.render()) }
-
-func (m Model) render() string {
-	if m.screen == screenHome {
-		return m.renderHome()
-	}
-	return m.renderBrowse()
-}
-
-func (m Model) renderHome() string {
-	previewStatus := muted.Render("终端图片预览：按 I 查看依赖补给方式")
-	if m.imageReady {
-		previewStatus = good.Render("终端图片预览：已启用（chafa）")
-	}
-	intro := strings.Join([]string{
-		accent.Render("✦ 星火终端助手"),
-		header.Render("在终端中浏览、下载和管理 Linux 软件"),
-		"公开 metadata 用于展示；Debian 应用交给 aptss 管理。",
-		"aptss 负责搜索软件源、镜像下载、校验、安装与更新。",
-		"",
-		good.Render("Enter  加载并浏览星火商店"),
-		muted.Render("B 浏览应用    ? 帮助    q 退出"),
-	}, "\n")
-	host := fmt.Sprintf("系统：%s\n发行版族：%s\n架构：%s\nSpark 路径：%s", m.host.Distro, m.host.Family, m.host.Architecture, m.host.SparkArchPath)
-	introPanel := panel.Width(max(44, m.width-8)).Render(intro)
-	if m.brandImage != "" && m.width >= 120 {
-		brandPanel := panel.Copy().Width(24).Height(13).Render(accent.Render("星火标识") + "\n\n" + m.brandImage)
-		textPanel := panel.Copy().Width(max(58, m.width-36)).Height(13).Render(intro)
-		introPanel = lipgloss.JoinHorizontal(lipgloss.Top, brandPanel, " ", textPanel)
-	}
-	hostPanel := panel.Width(max(44, m.width-8)).Render(accent.Render("本机自动识别") + "\n" + host + "\n\n" + previewStatus)
-	return lipgloss.JoinVertical(lipgloss.Left, introPanel, "", hostPanel, "", muted.Render("启动时不会安装软件；明确执行 --bootstrap-images 后才会调用系统包管理器。"), "", accent.Render(m.status))
-}
+func (m Model) View() tea.View { return tea.NewView(m.renderBrowse()) }
 
 func (m Model) renderBrowse() string {
 	title := header.Render("✦ Spark Store TUI") +
 		"  " + muted.Render(m.selectedCategoryName()) +
 		"  " + muted.Render(m.selectedSourceValue().Name) +
 		"  " + good.Render("● "+m.host.Architecture)
-	footer := muted.Render("↑↓ 导航  / 搜索  D 下载  P 更新  U 卸载  E 简介  [ ] 分类  R 刷新  Esc 首页  q 退出")
+	footer := muted.Render("↑↓/jk 选择  / 搜索  [ ] 分类  D 下载/安装  I 安装  P 检查/升级  U 卸载  X 删除包  O 原图  E 简介  R 刷新  q 退出")
+	footer = ansi.Truncate(footer, max(20, m.width-2), "…")
+	title = ansi.Truncate(title, max(20, m.width-2), "…")
 	if m.width < 80 {
 		return m.renderNarrowBrowse()
 	}
@@ -59,8 +29,9 @@ func (m Model) renderBrowse() string {
 	leftWidth := max(38, m.width*42/100)
 	rightWidth := max(38, m.width-leftWidth-3)
 	body := lipgloss.JoinHorizontal(lipgloss.Top,
-		m.renderList(leftWidth, bodyHeight), " ", m.renderDetails(rightWidth, bodyHeight, leftWidth+1))
-	return lipgloss.JoinVertical(lipgloss.Left, title, "", body, "", footer, accent.Render(m.status))
+		m.renderList(leftWidth, bodyHeight), " ", m.renderDetails(rightWidth, bodyHeight))
+	return lipgloss.JoinVertical(lipgloss.Left, title, "", body, "", footer,
+		ansi.Truncate(accent.Render(m.status), max(20, m.width-2), "…"))
 }
 
 func (m Model) renderNarrowBrowse() string {
@@ -83,7 +54,9 @@ func (m Model) renderNarrowBrowse() string {
 	if app.ID != "" {
 		lines = append(lines, "", accent.Render("详情"), truncate(valueOr(app.Description, "暂无简介"), max(20, m.width-2)))
 	}
-	lines = append(lines, muted.Render("/ 搜索  D 下载  P 更新  U 卸载  E 简介  [ ] 分类  q 退出"), accent.Render(m.status))
+	lines = append(lines,
+		ansi.Truncate(muted.Render("/ 搜索  [ ] 分类  D 下载/安装  I 安装  P 更新  U 卸载  X 删除  O 原图  E 简介  q 退出"), max(20, m.width-2), "…"),
+		ansi.Truncate(accent.Render(m.status), max(20, m.width-2), "…"))
 	return strings.Join(lines, "\n")
 }
 
@@ -120,7 +93,7 @@ func (m Model) renderList(width, height int) string {
 	return style.Render(strings.Join(lines, "\n"))
 }
 
-func (m Model) renderDetails(width, height, offset int) string {
+func (m Model) renderDetails(width, height int) string {
 	app := m.selectedAppValue()
 	if height < 24 {
 		lines := []string{
@@ -156,7 +129,7 @@ func (m Model) renderDetails(width, height, offset int) string {
 	if m.descriptionExpanded {
 		descriptionHint = muted.Render("按 E 收起简介")
 	}
-	downloadHint := muted.Render("D 下载 · P 检查更新 · U 卸载")
+	downloadHint := muted.Render("D 下载/安装 · I 安装 · P 检查/升级 · U 卸载 · X 删除包 · O 原图")
 	if m.downloading {
 		downloadHint = accent.Render("下载任务运行中…")
 	}
@@ -165,7 +138,6 @@ func (m Model) renderDetails(width, height, offset int) string {
 	if !m.imageReady {
 		screenshot = muted.Render("图片预览：安装 chafa 或使用支持图片的终端")
 	}
-	native := isNativeImage(screenshot)
 	lines := []string{
 		accent.Render("应用详情"),
 		headerBlock,
@@ -175,28 +147,12 @@ func (m Model) renderDetails(width, height, offset int) string {
 		"",
 		muted.Render("界面截图"),
 	}
-	if !native {
-		if screenshot == "" {
-			screenshot = muted.Render("暂无界面截图")
-		}
-		lines = append(lines, screenshot, "")
+	if screenshot == "" {
+		screenshot = muted.Render("暂无界面截图")
 	}
+	lines = append(lines, screenshot, "")
 	lines = append(lines, downloadHint, muted.Render("Debian：aptss/aria2 负责镜像选择、续传和软件源摘要校验"))
-
-	contentHeight := max(4, height-4)
-	if native {
-		contentHeight = max(4, height-15)
-	}
-	rendered := panel.Width(width - 4).Height(contentHeight).Render(strings.Join(lines, "\n"))
-	if native {
-		imageBlock := strings.Repeat(" ", offset) + screenshot + strings.Repeat("\n", 9)
-		return lipgloss.JoinVertical(lipgloss.Left, rendered, imageBlock)
-	}
-	return rendered
-}
-
-func isNativeImage(value string) bool {
-	return strings.HasPrefix(value, "\x1b_G") || strings.HasPrefix(value, "\x1b]1337;")
+	return panel.Width(width - 4).Height(max(4, height-4)).Render(strings.Join(lines, "\n"))
 }
 
 func (m Model) packageStatusLine(app domain.App) string {

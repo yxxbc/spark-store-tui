@@ -32,9 +32,7 @@ fail() {
   failed=1
 }
 
-sleep 1
-tmux send-keys -t "$session" Enter
-sleep 6
+sleep 7
 if capture | grep -q "应用列表"; then pass "browse screen"; else fail "browse screen"; fi
 
 before=$(capture | grep '›' | head -1 || true)

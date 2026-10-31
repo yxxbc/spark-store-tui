@@ -37,7 +37,6 @@ func TestWindowedAppsCentersSelection(t *testing.T) {
 func TestArrowKeysNavigateAppsWithSingleSource(t *testing.T) {
 	model := Model{
 		focus:   focusSources,
-		screen:  screenBrowse,
 		sources: []domain.CatalogSource{{ID: "spark-store"}},
 		apps:    []domain.App{{ID: "a"}, {ID: "b"}},
 	}
@@ -51,7 +50,6 @@ func TestArrowKeysNavigateAppsWithSingleSource(t *testing.T) {
 func TestCategorySwitchResetsSelectionAndFocus(t *testing.T) {
 	model := Model{
 		focus:         focusSources,
-		screen:        screenBrowse,
 		categories:    []domain.Category{{ID: "development"}, {ID: "games"}},
 		categoryIndex: 0,
 		category:      "development",
@@ -105,8 +103,8 @@ func TestPackageStatusOffersSelectedAppUpdate(t *testing.T) {
 		},
 	})
 	got := updated.(Model)
-	if command != nil || !got.pendingUpdate || !strings.Contains(got.status, "1.0 → 1.1") {
-		t.Fatalf("pending = %v, status = %q, command = %v", got.pendingUpdate, got.status, command)
+	if command != nil || !got.packageStatus.UpdateAvailable || !strings.Contains(got.status, "按 P 升级") {
+		t.Fatalf("status = %q, command = %v", got.status, command)
 	}
 	if line := got.packageStatusLine(got.selectedAppValue()); !strings.Contains(line, "可更新至 1.1") {
 		t.Fatalf("status line = %q", line)
@@ -119,35 +117,27 @@ func TestPackageStatusReportsUninstalledApp(t *testing.T) {
 		appID: "code", status: domain.PackageStatus{PackageName: "code", CandidateVersion: "1.1"},
 	})
 	got := updated.(Model)
-	if got.pendingUpdate || got.checkingPackage || !strings.Contains(got.status, "尚未安装") {
+	if got.checkingPackage || !strings.Contains(got.status, "尚未安装") {
 		t.Fatalf("model = %+v", got)
 	}
 }
 
-func TestRenderDetailsPlacesNativeImageOutsidePanel(t *testing.T) {
+func TestRenderDetailsShowsScreenshotArt(t *testing.T) {
 	model := Model{
 		imageReady:      true,
-		screenshotImage: "\x1b_Ga=T,f=100;AAAA\x1b\\",
+		screenshotImage: "[screenshot-art]",
 		apps: []domain.App{{
 			ID: "a", Name: "App", ScreenshotURLs: []string{"s.png"},
 		}},
 	}
-	out := model.renderDetails(60, 40, 20)
-	index := strings.Index(out, "\x1b_G")
-	if index < 0 {
-		t.Fatal("native image missing from view")
-	}
-	if !strings.Contains(out[:index], "应用详情") {
-		t.Fatal("details panel must be rendered before the native image")
-	}
-	if !strings.Contains(out, strings.Repeat(" ", 20)+"\x1b_G") {
-		t.Fatal("native image is not offset to the right column")
+	out := model.renderDetails(60, 40)
+	if !strings.Contains(out, "[screenshot-art]") || !strings.Contains(out, "界面截图") {
+		t.Fatalf("details output = %q", out)
 	}
 }
 
 func TestStaleMetadataRefreshesBeforeDownload(t *testing.T) {
 	model := Model{
-		screen:   screenBrowse,
 		loadedAt: time.Now().Add(-20 * time.Minute),
 		apps:     []domain.App{{ID: "code", Name: "Code"}},
 	}
@@ -163,7 +153,6 @@ func TestStaleMetadataRefreshesBeforeDownload(t *testing.T) {
 
 func TestPendingActionKeepsSelectedApp(t *testing.T) {
 	model := Model{
-		screen:        screenBrowse,
 		loadedAt:      time.Now(),
 		apps:          []domain.App{{ID: "a"}, {ID: "b"}, {ID: "c"}},
 		selectedApp:   1,

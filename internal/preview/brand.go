@@ -1,6 +1,7 @@
 package preview
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
@@ -46,6 +47,28 @@ func RenderURLSized(rawURL string, width, height int) string {
 		return ""
 	}
 	return RenderFileSized(path, width, height)
+}
+
+// DisplayURL prints an image outside the Bubble Tea renderer. The terminal's
+// native protocol is preferred; chafa is the fallback. With wait=true the
+// caller pauses until Enter so the user can inspect the image.
+func DisplayURL(rawURL string, width, height int, wait bool) error {
+	path, ok := cachedImage(rawURL)
+	if !ok {
+		return fmt.Errorf("could not fetch image")
+	}
+	rendered := RenderFileSized(path, width, height)
+	if rendered == "" {
+		return fmt.Errorf("no image renderer is available")
+	}
+	fmt.Println(rendered)
+	fmt.Println()
+	if wait {
+		fmt.Print("按 Enter 返回 TUI…")
+		_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
+		fmt.Println()
+	}
+	return nil
 }
 
 // RenderURLChafa always uses chafa, even on terminals with a native image
@@ -169,6 +192,7 @@ func imageProtocol() string {
 func kittyGraphics(encoded string, width, height int) string {
 	const chunkSize = 4096
 	var builder strings.Builder
+	first := true
 	for len(encoded) > 0 {
 		chunk := encoded
 		more := 0
@@ -179,7 +203,14 @@ func kittyGraphics(encoded string, width, height int) string {
 		} else {
 			encoded = ""
 		}
-		fmt.Fprintf(&builder, "\x1b_Ga=T,f=100,c=%d,r=%d,m=%d;%s\x1b\\", width, height, more, chunk)
+		if first {
+			// Control parameters belong to the first chunk only. q=2 suppresses
+			// Kitty's response, which Bubble Tea would otherwise read as input.
+			fmt.Fprintf(&builder, "\x1b_Ga=T,f=100,q=2,c=%d,r=%d,m=%d;%s\x1b\\", width, height, more, chunk)
+			first = false
+		} else {
+			fmt.Fprintf(&builder, "\x1b_Gm=%d;%s\x1b\\", more, chunk)
+		}
 	}
 	return builder.String()
 }

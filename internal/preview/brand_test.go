@@ -93,6 +93,9 @@ func TestKittyGraphicsChunksPayload(t *testing.T) {
 	if strings.Count(rendered, "\x1b_G") != 2 {
 		t.Fatalf("chunk count = %d, want 2", strings.Count(rendered, "\x1b_G"))
 	}
+	if strings.Count(rendered, "a=T") != 1 || strings.Count(rendered, "q=2") != 1 {
+		t.Fatalf("control parameters must appear once: %q", rendered[:80])
+	}
 }
 
 func TestKittenDirectRenderRequiresPNG(t *testing.T) {

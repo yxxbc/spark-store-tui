@@ -196,6 +196,27 @@ func (s *Service) PackageStatus(ctx context.Context, app domain.App) (domain.Pac
 
 func (s *Service) ImagePreviewAvailable() bool { return preview.SupportsImages() }
 
+// PreviewCommand opens the original screenshot (or icon) in a child process.
+// The TUI is suspended; the child prints the image with the terminal's native
+// protocol, or chafa when no native protocol is available.
+func (s *Service) PreviewCommand(app domain.App) (domain.Command, error) {
+	url := app.IconURL
+	if len(app.ScreenshotURLs) > 0 {
+		url = app.ScreenshotURLs[0]
+	}
+	if url == "" {
+		return domain.Command{}, fmt.Errorf("当前应用没有可预览的图片")
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return domain.Command{}, err
+	}
+	return domain.Command{
+		Path: executable,
+		Args: []string{"--preview-image", url, "--preview-wait"},
+	}, nil
+}
+
 func (s *Service) BootstrapCommand() (string, bool) {
 	command, err := platform.ImagePreviewCommand(s.host.Family)
 	return command, err == nil

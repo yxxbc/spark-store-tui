@@ -74,9 +74,8 @@ cmd/sparkstore                          → app, ui, config, platform, version
 
 `internal/preview` 先检测终端原生图片协议：
 
-- Kitty / Ghostty：Kitty graphics protocol（PNG，分块 base64）。
-- iTerm2 / WezTerm：iTerm2 inline image protocol。
-- 其他终端：`chafa --format=symbols` 兜底。
+- TUI 内：统一用 `chafa --format=symbols` 输出文本图，因为 Bubble Tea v2 的文本渲染器会丢弃终端图形转义序列。
+- `O` 键：TUI 暂停后由子进程输出原图；Kitty / Ghostty 使用 Kitty graphics protocol，iTerm2 / WezTerm 使用 inline image protocol，其他终端回退 chafa。
 
 远程图片限制 12 MiB、要求 `image/*`，缓存目录 `0700`、文件 `0600`。
 

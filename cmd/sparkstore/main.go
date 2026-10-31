@@ -13,6 +13,7 @@ import (
 	"github.com/yxxbc/spark-store-tui/internal/download"
 	"github.com/yxxbc/spark-store-tui/internal/packages"
 	"github.com/yxxbc/spark-store-tui/internal/platform"
+	"github.com/yxxbc/spark-store-tui/internal/preview"
 	"github.com/yxxbc/spark-store-tui/internal/state"
 	"github.com/yxxbc/spark-store-tui/internal/ui"
 	"github.com/yxxbc/spark-store-tui/internal/version"
@@ -21,10 +22,19 @@ import (
 func main() {
 	bootstrapImages := flag.Bool("bootstrap-images", false, "install the optional terminal image preview dependency for this distribution")
 	showVersion := flag.Bool("version", false, "print version information and exit")
+	previewImage := flag.String("preview-image", "", "render an image URL outside the TUI and exit")
+	previewWait := flag.Bool("preview-wait", false, "wait for Enter after rendering the image")
 	flag.Parse()
 
 	if *showVersion {
 		fmt.Println(version.String())
+		return
+	}
+	if *previewImage != "" {
+		if err := preview.DisplayURL(*previewImage, 40, 20, *previewWait); err != nil {
+			fmt.Fprintln(os.Stderr, "sparkstore:", err)
+			os.Exit(1)
+		}
 		return
 	}
 

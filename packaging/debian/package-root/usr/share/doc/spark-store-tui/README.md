@@ -30,8 +30,9 @@ Current release: **0.9.1**.
 - Check and upgrade only the selected application with `P`.
 - Store-style details pane: the application icon (`icons`) and the first in-app
   screenshot (`img_urls`) are shown together, without cycling.
-- Original-image preview on Kitty, iTerm2, WezTerm and Ghostty; chafa is the
-  fallback.
+- In-TUI previews use chafa symbol art for reliability in Bubble Tea. Press `O`
+  to open the original screenshot with the terminal's native protocol (Kitty,
+  iTerm2, WezTerm, Ghostty), with chafa as the fallback.
 - A desktop entry and icon are installed so the app appears in GUI menus.
 - Fully in-process Bubble Tea UI: no `fzf`, `rg` or shell-based selection.
 
@@ -90,6 +91,10 @@ sparkstore --bootstrap-images   # optionally install chafa
 
 Package aliases: `SparkStore`, `SPARKSTORE` and `spark-store-tui`.
 
+The app opens directly in the browser and loads the catalog on startup; there is
+no Enter-gated home screen. Package actions are direct and have no extra
+confirmation screen. A completed download is installed immediately.
+
 | Key | Action |
 |---|---|
 | `↑` / `↓` or `j` / `k` | Move between applications |
@@ -99,6 +104,7 @@ Package aliases: `SparkStore`, `SPARKSTORE` and `spark-store-tui`.
 | `I` / `Enter` | Install the downloaded package |
 | `P` | Check and upgrade the selected application |
 | `U` | Uninstall |
+| `O` | Open the original screenshot in the terminal |
 | `E` | Expand or collapse the description |
 | `R` | Reload the catalog |
 | `Esc` | Back to the home screen |

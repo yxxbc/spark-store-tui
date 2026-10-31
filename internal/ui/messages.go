@@ -37,6 +37,8 @@ type uninstallFinishedMsg struct{ err error }
 type installFinishedMsg struct{ err error }
 type updateFinishedMsg struct{ err error }
 
+type previewFinishedMsg struct{ err error }
+
 type packageStatusMsg struct {
 	appID  string
 	status domain.PackageStatus

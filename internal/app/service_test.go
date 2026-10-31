@@ -166,3 +166,16 @@ func TestUsesAPMFollowsBackend(t *testing.T) {
 		t.Fatal("apm backend must use APM")
 	}
 }
+
+func TestPreviewCommandUsesScreenshot(t *testing.T) {
+	service, _, _ := newTestService(t)
+	command, err := service.PreviewCommand(domain.App{
+		ID: "code", ScreenshotURLs: []string{"https://example.test/s.png"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(command.Args) < 3 || command.Args[0] != "--preview-image" || command.Args[1] != "https://example.test/s.png" {
+		t.Fatalf("command = %+v", command)
+	}
+}

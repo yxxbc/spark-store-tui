@@ -9,7 +9,7 @@
 | Debian / Ubuntu / UOS / 麒麟 | Spark metadata | `aptss download` | `aptss install` / `aptss remove` | `aptss policy` |
 | Arch / Fedora / RHEL / openSUSE | Spark metadata | 不单独下载 | Amber APM `apm install` / `apm remove` | `apm policy` |
 
-TUI 本身不直接调用 `apt`、`dnf`、`pacman`、`zypper` 安装星火应用，也不调用 `fzf`、`rg`、`find` 等外部进程完成交互。默认只读取公开 metadata；只有用户明确确认后才启动 `aptss` 或 `apm`。
+TUI 本身不直接调用 `apt`、`dnf`、`pacman`、`zypper` 安装星火应用，也不调用 `fzf`、`rg`、`find` 等外部进程完成交互。默认只读取公开 metadata；只有用户按下操作键（`D`/`I`/`P`/`U`）后才启动 `aptss` 或 `apm`。
 
 ## Debian：aptss
 
@@ -97,4 +97,4 @@ Metalink 当前发布 MD5、SHA-1 和空的 PGP 签名占位，**没有 SHA-256*
 
 ## 为什么不用 fzf
 
-TUI 由 Bubble Tea v2 在进程内完整实现，列表、搜索、窗口滚动、确认状态机都是 Go 代码；没有 `fzf` 子进程，也没有 shell 拼接。唯一可选外部进程是 `chafa`，用于不支持原生图片协议时的终端图片兜底。
+TUI 由 Bubble Tea v2 在进程内完整实现，列表、搜索、窗口滚动和直接操作状态机都是 Go 代码；没有 `fzf` 子进程，也没有 shell 拼接。唯一可选外部进程是 `chafa`，用于不支持原生图片协议时的终端图片兜底。

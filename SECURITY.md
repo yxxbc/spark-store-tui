@@ -6,7 +6,9 @@ never runs as a privileged process and never installs a setuid helper.
 
 ## Privilege boundary
 
-- No operation is executed without an explicit confirmation key press.
+- No operation is executed without an explicit key press from the user.
+  Destructive keys (`U`, `X`) act immediately by design; the TUI shows the
+  result in its status line.
 - Commands are built as argument vectors (`exec.Command`) and never passed to a
   shell. Package names and filenames are validated against a character
   whitelist before they can reach a package manager.
