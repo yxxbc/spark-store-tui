@@ -61,13 +61,21 @@ func DisplayURL(rawURL string, width, height int, wait bool) error {
 	if rendered == "" {
 		return fmt.Errorf("no image renderer is available")
 	}
+	// The TUI uses the alternate screen. Clear it first so the image is not
+	// drawn on top of the previous frame.
+	fmt.Print("\x1b[2J\x1b[H")
 	fmt.Println(rendered)
 	fmt.Println()
 	if wait {
 		fmt.Print("按 Enter 返回 TUI…")
 		_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
-		fmt.Println()
 	}
+	// Kitty images persist across text clears; delete them before the TUI
+	// redraws. Other terminals ignore this Kitty-specific command.
+	if imageProtocol() == "kitty" {
+		fmt.Print("\x1b_Ga=d,d=A\x1b\\")
+	}
+	fmt.Print("\x1b[2J\x1b[H")
 	return nil
 }
 
@@ -161,7 +169,7 @@ func renderDirect(path string, width, height int) string {
 	encoded := base64.StdEncoding.EncodeToString(data)
 	switch protocol {
 	case "iterm":
-		return fmt.Sprintf("\x1b]1337;File=inline=1;width=%d;height=%d;preserveAspectRatio=1:%s\x07", width, height, encoded)
+		return fmt.Sprintf("\x1b]1337;File=inline=1;width=%d;preserveAspectRatio=1:%s\x07", width, encoded)
 	case "kitty":
 		// f=100 is PNG-only; other formats fall back to chafa.
 		if !isPNG(data) {
@@ -177,6 +185,12 @@ func renderDirect(path string, width, height int) string {
 // detection is intentionally conservative: a wrong claim would print binary
 // escape data as text.
 func imageProtocol() string {
+	// tmux drops graphics unless passthrough is enabled. Default to chafa inside
+	// tmux; users can opt in with SPARKSTORE_TMUX_GRAPHICS=1 after configuring
+	// `set -g allow-passthrough on`.
+	if os.Getenv("TMUX") != "" && os.Getenv("SPARKSTORE_TMUX_GRAPHICS") != "1" {
+		return ""
+	}
 	term := strings.ToLower(os.Getenv("TERM"))
 	program := strings.ToLower(os.Getenv("TERM_PROGRAM"))
 	switch {
@@ -189,7 +203,7 @@ func imageProtocol() string {
 	}
 }
 
-func kittyGraphics(encoded string, width, height int) string {
+func kittyGraphics(encoded string, width, _ int) string {
 	const chunkSize = 4096
 	var builder strings.Builder
 	first := true
@@ -206,7 +220,9 @@ func kittyGraphics(encoded string, width, height int) string {
 		if first {
 			// Control parameters belong to the first chunk only. q=2 suppresses
 			// Kitty's response, which Bubble Tea would otherwise read as input.
-			fmt.Fprintf(&builder, "\x1b_Ga=T,f=100,q=2,c=%d,r=%d,m=%d;%s\x1b\\", width, height, more, chunk)
+			// Only the column count is set; Kitty computes the rows from the
+			// image aspect ratio instead of stretching it into a fixed box.
+			fmt.Fprintf(&builder, "\x1b_Ga=T,f=100,q=2,c=%d,m=%d;%s\x1b\\", width, more, chunk)
 			first = false
 		} else {
 			fmt.Fprintf(&builder, "\x1b_Gm=%d;%s\x1b\\", more, chunk)

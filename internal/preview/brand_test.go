@@ -96,6 +96,9 @@ func TestKittyGraphicsChunksPayload(t *testing.T) {
 	if strings.Count(rendered, "a=T") != 1 || strings.Count(rendered, "q=2") != 1 {
 		t.Fatalf("control parameters must appear once: %q", rendered[:80])
 	}
+	if strings.Contains(rendered, "r=") {
+		t.Fatal("Kitty rows must be computed from the aspect ratio")
+	}
 }
 
 func TestKittenDirectRenderRequiresPNG(t *testing.T) {

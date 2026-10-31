@@ -49,9 +49,11 @@ test. Please complete the manual checklist below in your own terminal.
    next to the app name and chafa symbol art for the first screenshot.
 7. The right pane shows the application icon and the first screenshot as chafa
    art in the standard store layout; there is no screenshot-switching key.
-8. Press `O`: the TUI suspends and the original screenshot is printed by the
-   terminal. Kitty/iTerm2/WezTerm/Ghostty use their native protocol; other
-   terminals fall back to chafa. Press Enter to return.
+8. Press `O`: the screen is cleared and the original screenshot is printed by
+   the terminal. Kitty/iTerm2/WezTerm/Ghostty use their native protocol; other
+   terminals fall back to chafa. Press Enter to return. Inside tmux the preview
+   uses chafa by default; set `SPARKSTORE_TMUX_GRAPHICS=1` after enabling
+   `allow-passthrough` to try native graphics.
 9. Press `E`: the description expands and collapses.
 10. Resize the terminal to 100x30 and 80x24: the layout must not scroll the
     header off-screen; short terminals show a compact details pane.

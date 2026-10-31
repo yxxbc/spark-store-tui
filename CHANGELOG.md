@@ -28,9 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`icons`) and the first in-app screenshot (`img_urls`) are shown together,
   without a screenshot-switching key.
 - In-TUI previews use chafa symbol art, because Bubble Tea v2's text renderer
-  strips terminal graphics escape sequences. Press `O` to open the original
-  screenshot outside the TUI with Kitty/iTerm2/WezTerm/Ghostty native protocols
-  (chafa fallback).
+  strips terminal graphics escape sequences. Press `O` to clear the screen and
+  open the original screenshot outside the TUI with Kitty/iTerm2/WezTerm/Ghostty
+  native protocols (chafa fallback). Kitty previews now preserve the image
+  aspect ratio and are deleted before the TUI resumes; tmux falls back to chafa
+  unless `SPARKSTORE_TMUX_GRAPHICS=1` is set.
 - A two-column browser layout replaces the stacked panes, and short terminals get
   a compact details pane that cannot scroll the whole view.
 - Catalog rows are deduplicated by package name and unsafe filenames are

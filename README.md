@@ -32,7 +32,9 @@ Current release: **0.9.1**.
   screenshot (`img_urls`) are shown together, without cycling.
 - In-TUI previews use chafa symbol art for reliability in Bubble Tea. Press `O`
   to open the original screenshot with the terminal's native protocol (Kitty,
-  iTerm2, WezTerm, Ghostty), with chafa as the fallback.
+  iTerm2, WezTerm, Ghostty), with chafa as the fallback. Inside tmux the preview
+  defaults to chafa; set `SPARKSTORE_TMUX_GRAPHICS=1` after enabling
+  `allow-passthrough` to force native graphics.
 - A desktop entry and icon are installed so the app appears in GUI menus.
 - Fully in-process Bubble Tea UI: no `fzf`, `rg` or shell-based selection.
 

@@ -75,7 +75,7 @@ cmd/sparkstore                          → app, ui, config, platform, version
 `internal/preview` 先检测终端原生图片协议：
 
 - TUI 内：统一用 `chafa --format=symbols` 输出文本图，因为 Bubble Tea v2 的文本渲染器会丢弃终端图形转义序列。
-- `O` 键：TUI 暂停后由子进程输出原图；Kitty / Ghostty 使用 Kitty graphics protocol，iTerm2 / WezTerm 使用 inline image protocol，其他终端回退 chafa。
+- `O` 键：TUI 暂停后由子进程清屏并输出原图；Kitty / Ghostty 使用 Kitty graphics protocol（只指定列数，按比例计算行数），iTerm2 / WezTerm 使用 inline image protocol，其他终端回退 chafa。tmux 默认回退 chafa；设置 `allow-passthrough` 后可加 `SPARKSTORE_TMUX_GRAPHICS=1` 强制原生图形。
 
 远程图片限制 12 MiB、要求 `image/*`，缓存目录 `0700`、文件 `0600`。
 

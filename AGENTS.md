@@ -49,9 +49,10 @@ scripts/build-dist.sh --skip-deb --skip-rpm
 - Release acceptance is a manual test by the maintainer on a real macOS
   terminal. The tmux script is only a smoke aid; do not treat it as acceptance.
 - Before publishing, inspect layouts at 120x40, 100x30 and 80x24.
-- In-TUI previews are chafa art; `O` opens the original image outside the TUI
-  with a native protocol (Kitty/iTerm2/WezTerm/Ghostty) or chafa fallback.
-  Verify both paths when touching preview code.
+- In-TUI previews are chafa art; `O` clears the screen and opens the original
+  image outside the TUI with a native protocol (Kitty/iTerm2/WezTerm/Ghostty) or
+  chafa fallback. tmux defaults to chafa; `SPARKSTORE_TMUX_GRAPHICS=1` opts in
+  to native graphics. Verify both paths when touching preview code.
 - Never publish a release without the maintainer asking for it.
 
 ## Security rules
