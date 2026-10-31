@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitee.com/spark-store-project/spark-store-tui/docs/schema/applist.schema.json",
+  "title": "Spark Store applist.json",
+  "description": "Array returned by /{arch}-store/{category}/applist.json.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "Name": { "type": "string", "description": "Display name." },
+      "name": { "type": "string", "description": "Lowercase display name alias." },
+      "Version": { "type": "string" },
+      "Filename": { "type": "string", "description": "Published package filename, including extension." },
+      "Pkgname": { "type": "string", "description": "Package-manager name." },
+      "pkgname": { "type": "string", "description": "Lowercase package-manager name alias." },
+      "Size": { "type": "string", "description": "Human-readable size such as 238M." },
+      "More": { "type": "string", "description": "Long description." },
+      "Author": { "type": "string" },
+      "Contributor": { "type": "string" },
+      "Website": { "type": "string" },
+      "Update": { "type": "string" },
+      "Tags": { "type": "string" },
+      "Torrent_address": { "type": "string" },
+      "DownloadTimes": { "type": "integer" },
+      "icons": {
+        "description": "One URL or a JSON array, sometimes encoded as a JSON string.",
+        "oneOf": [
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      },
+      "img_urls": {
+        "description": "Screenshot URLs as an array or a JSON-encoded string.",
+        "oneOf": [
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      }
+    },
+    "required": ["Filename"],
+    "anyOf": [
+      { "required": ["Pkgname"] },
+      { "required": ["pkgname"] }
+    ]
+  }
+}

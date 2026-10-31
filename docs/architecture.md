@@ -1,33 +1,107 @@
-# 重构架构（第一期）
+# 架构（0.9.0）
 
-新实现位于 Go 模块中，现有 Bash 入口和既有 DEB/RPM/AUR 打包文件暂不修改。
+0.9.0 保持用户可见行为不变，重写了内部控制层。目标是把“目录数据、下载、包管理、UI”拆成可替换的边界，并让所有提权操作只有一个出口。
+
+## 目录
 
 ```text
-cmd/spark-store-tui        程序入口
-internal/domain            与远程来源无关的应用、镜像和下载任务模型
-internal/provider          Spark Store metadata 适配器
-internal/download          aptss/aria2 进程适配和可恢复下载任务
-internal/state             XDG 状态目录中的持久化下载任务
-internal/ui                Bubble Tea 三栏交互界面
-internal/system            发行版、CPU 架构和可选依赖的检测与补给命令
+cmd/sparkstore/          程序入口、flag、依赖装配、Terminal 适配器
+internal/
+  app/                   用例编排：目录、下载、安装、更新、卸载、状态
+  catalog/               Spark metadata Provider（原 provider）
+  config/                XDG 路径与 SPARKSTORE_* 环境变量
+  domain/                纯模型：App、CatalogSource、DownloadTask、Plan、Status
+  download/              Metalink/HTTP 引擎、aptss 下载器、任务生命周期
+  packages/              aptss / Amber APM 后端、包名解析、policy 解析
+  platform/              发行版/架构探测、图片预览依赖
+  preview/               原图协议与 chafa 兜底
+  state/                 原子 JSON 任务快照
+  ui/                    Bubble Tea 模型/视图；只依赖 domain 与 preview
+  version/               ldflags 注入的版本信息
+packaging/
+  debian/package-root/   Debian 包根、.desktop、图标
+  rpm/                   RPM spec
+  aur/                   PKGBUILD/SRCINFO 模板
+legacy/apt|rpm/          冻结于 0.7.2 的历史归档
+scripts/                 build-dist、sync-all、install、publish-aur
+.github/workflows/       ci、release、mirror、publish-aur
+.cnb.yml                 CNB CI 与 tag 发布
+VERSION                  唯一上游版本源
 ```
 
-## 下载职责
+## 依赖方向
 
-1. Provider 将 Spark Store metadata 规范化为 `domain.App`，只负责展示信息和真实 Deb 文件名。
-2. Debian 下载器从文件名提取真实包名并执行 `aptss download <包名>=<版本>`；aptss/aria2 负责软件源、镜像、摘要校验和续传。
-3. TUI 记录外围任务状态，并结合最终文件与 `.aria2` 控制文件恢复中断任务。
-4. 安装、卸载、版本查询和所选应用更新分别调用 aptss；APM 平台调用对应的 `apm` 命令。
+```text
+domain, version, config, preview         叶子
+platform, catalog, download, state      → domain
+packages                                → domain, platform
+app                                     → domain, config, platform, catalog, download, packages
+ui                                      → domain, preview
+cmd/sparkstore                          → app, ui, config, platform, version
+```
 
-## 运行开发版
+`go list -deps ./internal/ui` 只应出现 `internal/domain` 与 `internal/preview`。UI 不导入 `os/exec`，也不直接删除文件。
 
-需要 Go 1.25 或更新版本：
+## 关键接口
+
+- `catalog.Provider` / `catalog.CategoryProvider`：上游目录数据的唯一入口。
+- `app.Downloader`：`Prepare` / `ExistingPath` / `Recover`。
+- `packages.Backend`：`Validate` / `Install` / `Remove` / `Update` / `Status`；`packages.For` 按发行版族选择 aptss 或 APM。
+- `ui.Service` / `ui.Terminal`：UI 的消费者侧端口；`cmd/sparkstore/terminal.go` 是唯一构造 `exec.Cmd` 的地方。
+
+完整签名与数据契约见 [data-interfaces.md](data-interfaces.md)。
+
+## 下载生命周期
+
+1. `app.Service.PrepareDownload` 选择下载器。
+2. Debian：`APTSSDownloader` 生成 `domain.Command`，通过 `Terminal` 交给 `tea.ExecProcess`，aptss/aria2 显示原生进度并负责续传。
+3. 非 Debian：`MetalinkDownloader` 在后台解析 Metalink，按 preference 与 HTTPS 优先排序镜像，逐个尝试。
+4. `Engine` 写 `.part`、支持 Range 续传、无数据超时、摘要校验、原子 rename。
+5. 任务状态写入 `~/.config/sparkstore/tasks.json`；启动时 `Recover` 结合最终文件、`.aria2` 与 `.part` 判断完成/中断。
+
+## 包管理
+
+- Debian：`aptss download/install/remove/policy`。
+- Arch/RPM/openSUSE：`apm install/remove/policy/install --only-upgrade`。
+- 包名优先取 Deb 文件名前缀；所有注入路径走参数列表与白名单。
+- 非 root 使用 `sudo --`，root 直接执行。
+
+详见 [package-backends.md](package-backends.md)。
+
+## 图片预览
+
+`internal/preview` 先检测终端原生图片协议：
+
+- Kitty / Ghostty：Kitty graphics protocol（PNG，分块 base64）。
+- iTerm2 / WezTerm：iTerm2 inline image protocol。
+- 其他终端：`chafa --format=symbols` 兜底。
+
+远程图片限制 12 MiB、要求 `image/*`，缓存目录 `0700`、文件 `0600`。
+
+## 配置路径
+
+| 变量 | 默认值 |
+|---|---|
+| `SPARKSTORE_CONFIG_DIR` | `~/.config/sparkstore` |
+| `SPARKSTORE_DOWNLOAD_DIR` | `~/Downloads` |
+| `SPARKSTORE_ALLOW_HTTP` | 未设置（只允许 HTTPS） |
+| `SPARKSTORE_BRAND_IMAGE` | 工作目录 `icon.png` |
+
+## 版本与构建
+
+`VERSION` 是唯一上游版本；`packaging/revisions.env` 保存 Deb/RPM/source/AUR 修订号。`scripts/build-dist.sh` 用 `-ldflags` 注入 `version.Version/Commit/Date`，并生成所有发布物与 `SHA256SUMS`。`scripts/check-version.sh` 校验 spec、control、AUR 模板与旧路径残留。
+
+## 发布
+
+- GitHub Actions：`ci.yml`（测试/交叉构建/dist 冒烟）、`release.yml`（tag 构建并发布 GitHub，随后用 repo-all-sync 发布 Gitee/CNB）、`mirror.yml`（main/tag 源码镜像）。
+- CNB：`.cnb.yml` 在 main 跑测试与交叉构建，在 `v*` tag 构建产物并发布 CNB/Gitee。
+- 本地：`scripts/sync-all.sh` 串联 `doctor → push → release`，`--dry-run` 可预演。
+
+## 开发
 
 ```bash
-go run ./cmd/spark-store-tui
 go test ./...
+go vet ./...
+make go-build
+./build/sparkstore --version
 ```
-
-默认 TUI 仅绑定 Spark Store metadata：进入应用浏览时会先加载官方分类，再按选择的架构和分类加载应用列表。
-
-启动时会自动根据 `/etc/os-release` 和 Go 运行时架构选择 `amd64-store` 或 `arm64-store`。终端图片预览使用 `chafa`；在仓库根目录运行时，首页会渲染 `icon.png`，也可使用 `SPARK_STORE_TUI_BRAND_IMAGE` 指定图片。不会在启动时自行安装任何软件，用户明确执行 `sparkstore --bootstrap-images` 后才会按发行版调用对应包管理器。

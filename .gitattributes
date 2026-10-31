@@ -3,18 +3,30 @@
 *.txt text eol=lf
 COPYING text eol=lf
 Makefile text eol=lf
+VERSION text eol=lf
 .gitignore text eol=lf
 .gitattributes text eol=lf
-package-root/DEBIAN/* text eol=lf
-package-root/usr/bin/* text eol=lf
-package-root/usr/share/doc/*/copyright text eol=lf
+packaging/debian/package-root/DEBIAN/* text eol=lf
+packaging/debian/package-root/usr/bin/* text eol=lf
+packaging/debian/package-root/usr/share/doc/*/copyright text eol=lf
+packaging/revisions.env text eol=lf
 *.sh text eol=lf
 *.spec text eol=lf
 PKGBUILD text eol=lf
-.SRCINFO text eol=lf
+PKGBUILD.in text eol=lf
+SRCINFO.in text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.gz binary
 *.deb binary
 *.rpm binary
 *.tar.gz binary
+
+# Keep mirror snapshots and review material out of source tarballs.
+legacy/** export-ignore
+.github/** export-ignore
+docs/review/** export-ignore
+packaging/aur/** export-ignore
+build/** export-ignore
+dist/** export-ignore
+.codex-tools/** export-ignore

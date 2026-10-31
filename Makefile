@@ -1,14 +1,19 @@
-VERSION := 0.8.3
-DEB_REVISION := 3
-SOURCE_REVISION := 4
-PKGNAME := spark-store-tui
-PKGROOT := package-root
-ARCH ?= $(shell dpkg --print-architecture 2>/dev/null || echo amd64)
-DEB := $(PKGNAME)_$(VERSION)-$(DEB_REVISION)_$(ARCH).deb
-SOURCE_TAR := $(PKGNAME)-source-$(VERSION)-r$(SOURCE_REVISION).tar.gz
-SOURCE_DIR := $(PKGNAME)-source-$(VERSION)
+SHELL := /bin/sh
 
-.PHONY: all check build source clean local-install go-test go-build
+VERSION := $(shell cat VERSION)
+include packaging/revisions.env
+
+PKGNAME := spark-store-tui
+PKGROOT := packaging/debian/package-root
+ARCH ?= $(shell dpkg --print-architecture 2>/dev/null || echo amd64)
+COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS := -s -w \
+	-X github.com/yxxbc/spark-store-tui/internal/version.Version=$(VERSION) \
+	-X github.com/yxxbc/spark-store-tui/internal/version.Commit=$(COMMIT) \
+	-X github.com/yxxbc/spark-store-tui/internal/version.Date=$(BUILD_DATE)
+
+.PHONY: all check build source dist go-test go-build local-install clean release-check version
 
 all: check build
 
@@ -16,35 +21,28 @@ check:
 	sh -n $(PKGROOT)/usr/bin/sparkstore
 	sh -n $(PKGROOT)/DEBIAN/postinst
 	sh -n $(PKGROOT)/DEBIAN/postrm
+	bash -n scripts/build-dist.sh
+	bash -n scripts/install-sparkstore.sh
+	bash -n scripts/publish-aur.sh
+	bash -n scripts/sync-all.sh
+	bash -n scripts/check-version.sh
 	go test ./...
 	go vet ./...
+	go build ./...
 
-# Build a native Debian package. The package stage is copied into Linux tmpfs
-# first so this works when the checkout lives under WSL's /mnt/c (where Unix
-# ownership and execute bits cannot be represented reliably).
+# Build a native Debian package for the host architecture. The stage is copied
+# into a Linux temporary directory first so this works when the checkout lives
+# under WSL's /mnt/c (where Unix ownership and execute bits are unreliable).
 build:
-	@stage=$$(mktemp -d); \
-	trap 'rm -rf "$$stage"' EXIT; \
-	cp -a $(PKGROOT) "$$stage/$(PKGROOT)"; \
-	find "$$stage/$(PKGROOT)" -type d -exec chmod 0755 {} +; \
-	find "$$stage/$(PKGROOT)" -type f -exec chmod 0644 {} +; \
-	rm -f "$$stage/$(PKGROOT)/usr/bin/spark-store-tui"; \
-	mkdir -p "$$stage/$(PKGROOT)/usr/lib/sparkstore"; \
-	goarch=$$(case "$(ARCH)" in amd64) echo amd64 ;; arm64) echo arm64 ;; loong64) echo loong64 ;; riscv64) echo riscv64 ;; *) echo "$(ARCH)" ;; esac); \
-	GOOS=linux GOARCH=$$goarch CGO_ENABLED=0 go build -buildvcs=false -o "$$stage/$(PKGROOT)/usr/lib/sparkstore/sparkstore" ./cmd/spark-store-tui; \
-	find "$$stage/$(PKGROOT)" -type d -exec chmod 0755 {} +; \
-	chmod 0755 "$$stage/$(PKGROOT)/usr/bin/sparkstore" "$$stage/$(PKGROOT)/usr/lib/sparkstore/sparkstore" "$$stage/$(PKGROOT)/DEBIAN/postinst" "$$stage/$(PKGROOT)/DEBIAN/postrm"; \
-	sed -i "s/^Version: .*/Version: $(VERSION)-$(DEB_REVISION)/; s/^Architecture: .*/Architecture: $(ARCH)/" "$$stage/$(PKGROOT)/DEBIAN/control"; \
-	(cd "$$stage/$(PKGROOT)" && find usr -type f -print0 | sort -z | xargs -0 md5sum > DEBIAN/md5sums); \
-	dpkg-deb --build --root-owner-group "$$stage/$(PKGROOT)" $(DEB)
+	scripts/build-dist.sh --skip-rpm --skip-source --deb-archs "$(ARCH)"
 
 source:
-	@temporary=$$(mktemp); \
-	tar --exclude='.git' --exclude='.codex-tools' --exclude='*.deb' --exclude='*.rpm' --exclude='*.tar.gz' --exclude='.cache' --exclude='build' --exclude='dist' --exclude='apt' --exclude='rpm' --exclude='package-root/tmp' --exclude='./packaging/aur/PKGBUILD' --exclude='./packaging/aur/.SRCINFO' --transform='s,^,$(SOURCE_DIR)/,' -czf "$$temporary" .; \
-	mv "$$temporary" $(SOURCE_TAR)
+	scripts/build-dist.sh --skip-deb --skip-rpm
 
-local-install: build
-	sudo apt install ./$(DEB)
+# Build every release artifact: Deb, RPM, source archive, AUR files and
+# SHA256SUMS. Requires a Linux host with dpkg-deb and rpmbuild.
+dist:
+	scripts/build-dist.sh
 
 go-test:
 	go test ./...
@@ -52,7 +50,7 @@ go-test:
 
 go-build:
 	mkdir -p build
-	go build -buildvcs=false -o build/sparkstore ./cmd/spark-store-tui
+	CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags "$(LDFLAGS)" -o build/sparkstore ./cmd/sparkstore
 	@probe=$$(mktemp -d build/.sparkstore-case.XXXXXX); \
 	touch "$$probe/sparkstore"; \
 	if [ ! -e "$$probe/SparkStore" ]; then \
@@ -64,6 +62,14 @@ go-build:
 	fi; \
 	rm -rf "$$probe"
 
+local-install: build
+	sudo apt install ./dist/$(PKGNAME)_$(VERSION)-$(DEB_REVISION)_$(ARCH).deb
+
+release-check:
+	scripts/check-version.sh
+
+version:
+	@echo $(VERSION)
+
 clean:
-	rm -f *.deb
-	rm -f $(SOURCE_TAR)
+	rm -rf build dist

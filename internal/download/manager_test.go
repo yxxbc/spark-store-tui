@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Xynrin/spark-store-tui/internal/domain"
+	"github.com/yxxbc/spark-store-tui/internal/domain"
 )
 
 type memoryStore struct{ tasks []domain.DownloadTask }
@@ -20,6 +20,10 @@ type memoryStore struct{ tasks []domain.DownloadTask }
 func (s *memoryStore) Upsert(task domain.DownloadTask) error {
 	s.tasks = append(s.tasks, task)
 	return nil
+}
+
+func (s *memoryStore) Load() ([]domain.DownloadTask, error) {
+	return append([]domain.DownloadTask(nil), s.tasks...), nil
 }
 
 func TestManagerDownloadsAndVerifies(t *testing.T) {
@@ -41,7 +45,7 @@ func TestManagerDownloadsAndVerifies(t *testing.T) {
 		CreatedAt:      time.Now().UTC(),
 	}
 
-	completed, err := NewManager(nil, store).Run(context.Background(), task)
+	completed, err := NewEngine(nil, store).Run(context.Background(), task)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +77,7 @@ func TestManagerResumesRangeRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	task := domain.DownloadTask{ID: "task-2", URL: server.URL, Destination: destination, CreatedAt: time.Now().UTC()}
-	if _, err := NewManager(nil, nil).Run(context.Background(), task); err != nil {
+	if _, err := NewEngine(nil, nil).Run(context.Background(), task); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := os.ReadFile(destination); err != nil || string(got) != string(payload) {
@@ -89,7 +93,7 @@ func TestManagerFailsStalledTransferInsteadOfWaitingIndefinitely(t *testing.T) {
 	}))
 	defer server.Close()
 
-	manager := NewManager(server.Client(), nil)
+	manager := NewEngine(server.Client(), nil)
 	manager.inactivityTimeout = 20 * time.Millisecond
 	_, err := manager.Run(context.Background(), domain.DownloadTask{
 		ID: "stalled", URL: server.URL, Destination: filepath.Join(t.TempDir(), "package.deb"), CreatedAt: time.Now().UTC(),

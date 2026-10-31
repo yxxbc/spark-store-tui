@@ -1,8 +1,0 @@
-#!/bin/sh
-set -e
-
-# Linux command names are case-sensitive. Provide only documented common
-# variants; arbitrary casing cannot be resolved by the shell.
-ln -sfn sparkstore /usr/bin/SparkStore
-ln -sfn sparkstore /usr/bin/SPARKSTORE
-ln -sfn sparkstore /usr/bin/spark-store-tui

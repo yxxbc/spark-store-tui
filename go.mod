@@ -1,6 +1,6 @@
-module github.com/Xynrin/spark-store-tui
+module github.com/yxxbc/spark-store-tui
 
-go 1.25.0
+go 1.26.10
 
 require (
 	charm.land/bubbletea/v2 v2.0.8

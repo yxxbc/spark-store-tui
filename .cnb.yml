@@ -1,0 +1,57 @@
+# CNB 云原生构建
+#
+# main 分支执行质量门禁；v* Tag 构建全部产物并发布到 CNB/Gitee。
+# GITEE_TOKEN 需在仓库「设置 -> 环境变量」中配置；CNB_TOKEN 由平台注入。
+# GITEE_OWNER 默认 spark-store-project，CNB 组默认取当前仓库的父组织。
+
+main:
+  push:
+    - name: ci
+      docker:
+        image: golang:1.26-bookworm
+      stages:
+        - name: test
+          script: |
+            go vet ./...
+            go test -race ./...
+            scripts/check-version.sh
+        - name: cross-build
+          script: |
+            mkdir -p build
+            for arch in amd64 arm64 loong64 riscv64; do
+              CGO_ENABLED=0 GOOS=linux GOARCH="$arch" \
+                go build -trimpath -buildvcs=false \
+                -o "build/sparkstore-$arch" ./cmd/sparkstore
+            done
+
+v*:
+  tag_push:
+    - name: release
+      docker:
+        image: golang:1.26-bookworm
+      stages:
+        - name: test
+          script: |
+            go test ./...
+            scripts/check-version.sh
+        - name: build
+          script: |
+            apt-get update
+            apt-get install -y rpm
+            scripts/build-dist.sh
+        - name: publish
+          image: node:20-bookworm
+          script: |
+            if [ -z "${GITEE_TOKEN:-}" ]; then
+              echo "GITEE_TOKEN is not configured; skipping Gitee/CNB release."
+              echo "Configure it in repository settings or publish from GitHub Actions."
+              exit 0
+            fi
+            export GITEE_OWNER="${GITEE_OWNER:-spark-store-project}"
+            if [ -z "${CNB_GROUP:-}" ]; then
+              export CNB_GROUP="${CNB_GROUP_SLUG:-${CNB_REPO_SLUG%%/*}}"
+            fi
+            npx --yes repo-all-sync@0.2.1 release \
+              --version "${CNB_BRANCH#v}" \
+              --assets dist \
+              --notes RELEASE_NOTES.md

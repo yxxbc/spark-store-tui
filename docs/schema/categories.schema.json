@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitee.com/spark-store-project/spark-store-tui/docs/schema/categories.schema.json",
+  "title": "Spark Store categories.json",
+  "description": "Object returned by /store/categories.json.",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "properties": {
+      "zh": { "type": "string" },
+      "en": { "type": "string" },
+      "name": { "type": "string" }
+    }
+  }
+}

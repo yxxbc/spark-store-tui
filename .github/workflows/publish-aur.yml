@@ -18,6 +18,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+          cache: true
+
+      - name: Build source archive and AUR files
+        run: scripts/build-dist.sh --skip-deb --skip-rpm
+
       - name: Configure AUR deploy key
         env:
           AUR_DEPLOY_KEY_B64: ${{ secrets.AUR_DEPLOY_KEY_B64 }}
