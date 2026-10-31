@@ -1,5 +1,9 @@
 # Testing the TUI on macOS
 
+**Acceptance is manual and happens on the maintainer's Mac.** The tmux script in
+this repository is only an optional smoke aid; it does not replace a human test
+in a real terminal.
+
 Package operations require Linux backends (`aptss` / Amber APM). On macOS you
 can still test the full catalog, navigation, search, layouts and image preview.
 
@@ -22,14 +26,15 @@ make go-build
 `sparkstore: package operations unavailable` is expected on macOS; browsing
 still works.
 
-## Automated smoke test
+## Optional smoke aid
 
 ```bash
 scripts/test-tui-macos.sh
 ```
 
-It builds the binary, starts a 120x40 tmux session, and checks: browse screen,
-arrow navigation, category switch, screenshot label, search, and quit.
+This starts a 120x40 tmux session and checks text-level state changes. It cannot
+see graphical images, cannot judge spacing/legibility and is not the acceptance
+test. Please complete the manual checklist below in your own terminal.
 
 ## Manual checklist
 

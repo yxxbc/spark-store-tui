@@ -28,8 +28,8 @@ Current release: **0.9.1**.
 - Arch, Fedora/RHEL and openSUSE: install through Amber APM.
 - Resumable downloads; interrupted tasks are recovered after a restart.
 - Check and upgrade only the selected application with `P`.
-- In-app screenshots (`img_urls`) with `S`; the metadata icon (`icons`) is used
-  as a fallback and as the application icon.
+- Store-style details pane: the application icon (`icons`) and the first in-app
+  screenshot (`img_urls`) are shown together, without cycling.
 - Original-image preview on Kitty, iTerm2, WezTerm and Ghostty; chafa is the
   fallback.
 - A desktop entry and icon are installed so the app appears in GUI menus.
@@ -100,15 +100,17 @@ Package aliases: `SparkStore`, `SPARKSTORE` and `spark-store-tui`.
 | `P` | Check and upgrade the selected application |
 | `U` | Uninstall |
 | `E` | Expand or collapse the description |
-| `S` | Cycle in-app screenshots |
 | `R` | Reload the catalog |
 | `Esc` | Back to the home screen |
 | `q` | Quit |
 
 ## Package management
 
-The TUI only reads public Spark metadata for browsing. Actual package work is
-delegated to the distribution's backend:
+The TUI only reads public Spark metadata for browsing. Catalog rows are
+deduplicated by package name and unsafe filenames are rejected. Before a
+download or upgrade, a catalog older than 10 minutes is refreshed first, so the
+action does not use stale metadata. Actual package work is delegated to the
+distribution's backend:
 
 - **Debian family:** `aptss` handles repository selection, mirror download,
   digest verification, resume, install, update and removal.

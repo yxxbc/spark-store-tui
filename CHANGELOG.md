@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The unsupported-package-backend warning is no longer printed on non-Linux
   development hosts.
 
+### Changed
+
+- Redraw the application icon and add an official-variant SVG derived from the
+  official Spark Store swirl; the variant is reserved for use after official
+  inclusion.
+
 ## [0.9.0] - 2026-10-31
 
 ### Added

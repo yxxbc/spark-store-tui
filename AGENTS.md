@@ -35,7 +35,7 @@ make go-build                  # build/sparkstore for the current host
 make release-check             # version/path consistency
 
 scripts/build-icons.sh         # render assets/icon*.svg -> PNGs
-scripts/test-tui-macos.sh      # tmux smoke test on macOS
+scripts/test-tui-macos.sh      # optional tmux smoke aid (not acceptance)
 
 # Linux only (dpkg-deb + rpmbuild):
 make dist
@@ -46,8 +46,9 @@ scripts/build-dist.sh --skip-deb --skip-rpm
 
 - Unit tests cover UI state transitions (navigation, categories, screenshots,
   preview placement) and package backend routing.
-- Before publishing a release, run the macOS interaction smoke test and inspect
-  layouts at 120x40, 100x30 and 80x24.
+- Release acceptance is a manual test by the maintainer on a real macOS
+  terminal. The tmux script is only a smoke aid; do not treat it as acceptance.
+- Before publishing, inspect layouts at 120x40, 100x30 and 80x24.
 - Images require a native terminal protocol (Kitty, iTerm2, WezTerm, Ghostty)
   or `chafa`; verify both paths when touching preview code.
 - Never publish a release without the maintainer asking for it.

@@ -1,16 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Spark Store TUI official variant">
   <defs>
+    <linearGradient id="border" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFC7D9"/>
+      <stop offset="0.35" stop-color="#FFE9B0"/>
+      <stop offset="0.7" stop-color="#BFD8FF"/>
+      <stop offset="1" stop-color="#D9C8FF"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFB21E"/>
+      <stop offset="0.55" stop-color="#FF7A00"/>
+      <stop offset="1" stop-color="#FF3D00"/>
+    </linearGradient>
     <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#00F1FF"/>
-      <stop offset="1" stop-color="#008AFF"/>
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#2563EB"/>
     </linearGradient>
   </defs>
-  <rect x="24" y="24" width="464" height="464" rx="104" fill="url(#blue)"/>
-  <rect x="96" y="144" width="320" height="240" rx="28" fill="#FFFFFF" fill-opacity="0.14" stroke="#FFFFFF" stroke-width="10"/>
-  <circle cx="132" cy="180" r="8" fill="#FFFFFF" fill-opacity="0.9"/>
-  <circle cx="160" cy="180" r="8" fill="#FFFFFF" fill-opacity="0.7"/>
-  <circle cx="188" cy="180" r="8" fill="#FFFFFF" fill-opacity="0.5"/>
-  <path d="M144 232 L192 264 L144 296" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="216" y="292" width="104" height="18" rx="9" fill="#FFFFFF"/>
-  <path d="M352 84 L366 124 L406 138 L366 152 L352 192 L338 152 L298 138 L338 124 Z" fill="#FFFFFF"/>
+
+  <rect x="18" y="18" width="476" height="476" rx="96" fill="#FFFFFF" stroke="url(#border)" stroke-width="22"/>
+
+  <!-- Spark Store swirl, derived from the official mark. -->
+  <path d="M168 300 C120 240 140 170 210 140" fill="none" stroke="#FFD21E" stroke-width="20" stroke-linecap="round"/>
+  <path d="M220 140 C270 120 320 135 350 165" fill="none" stroke="#22D3EE" stroke-width="18" stroke-linecap="round"/>
+  <path d="M355 170 C395 210 405 260 390 300" fill="none" stroke="#22C55E" stroke-width="18" stroke-linecap="round"/>
+  <path d="M395 200 C430 250 420 320 370 360" fill="none" stroke="url(#blue)" stroke-width="26" stroke-linecap="round"/>
+  <path d="M180 300 C180 230 240 200 290 220 C330 236 340 280 310 300 C290 314 265 305 262 285" fill="none" stroke="url(#orange)" stroke-width="24" stroke-linecap="round"/>
+  <path d="M170 340 C220 390 300 400 350 370" fill="none" stroke="#F472B6" stroke-width="24" stroke-linecap="round"/>
+  <path d="M230 310 C210 280 220 250 245 240" fill="none" stroke="#FBBF24" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- TUI badge: the second modification on top of the official mark. -->
+  <rect x="344" y="348" width="126" height="92" rx="24" fill="#141B24" stroke="#FF9D2E" stroke-width="8"/>
+  <path d="M374 380 L398 398 L374 416" fill="none" stroke="#FF9D2E" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="410" y="410" width="34" height="8" rx="4" fill="#FF9D2E"/>
 </svg>
