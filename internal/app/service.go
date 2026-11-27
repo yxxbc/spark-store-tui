@@ -122,7 +122,10 @@ func (s *Service) ValidateDownload(app domain.App) error {
 		return err
 	}
 	if app.Filename == "" || filepath.Base(app.Filename) != app.Filename {
-		return fmt.Errorf("%s 没有可交给 aptss 的软件包元数据", app.Name)
+		return fmt.Errorf("%s 没有可下载的软件包元数据", app.Name)
+	}
+	if s.backend != nil && s.backend.Family() != "deb" && app.MetalinkURL == "" {
+		return fmt.Errorf("%s 没有可下载的 Metalink 资产", app.Name)
 	}
 	return nil
 }

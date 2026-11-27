@@ -4,12 +4,14 @@ import "github.com/yxxbc/spark-store-tui/internal/domain"
 
 type appsLoadedMsg struct {
 	sourceID string
+	request  int
 	apps     []domain.App
 	err      error
 }
 
 type categoriesLoadedMsg struct {
 	sourceID   string
+	request    int
 	categories []domain.Category
 	err        error
 }
@@ -29,8 +31,9 @@ type previewDueMsg struct {
 }
 
 type downloadFinishedMsg struct {
-	task domain.DownloadTask
-	err  error
+	appID string
+	task  domain.DownloadTask
+	err   error
 }
 
 type uninstallFinishedMsg struct{ err error }

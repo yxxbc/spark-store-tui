@@ -11,6 +11,15 @@ var (
 	Date    = "unknown"
 )
 
+// UserAgent identifies the client to catalog and image hosts. It follows the
+// build version instead of a hard-coded release number.
+func UserAgent() string {
+	if Version == "dev" {
+		return "sparkstore/dev"
+	}
+	return "sparkstore/" + Version
+}
+
 // String is the single-line version reported by `sparkstore --version`.
 func String() string {
 	if Version == "dev" {

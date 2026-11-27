@@ -1,6 +1,6 @@
-# 架构（0.9.1）
+# 架构（0.9.2）
 
-0.9.1 保持用户可见行为不变，重写了内部控制层。目标是把“目录数据、下载、包管理、UI”拆成可替换的边界，并让所有提权操作只有一个出口。
+0.9.2 修复了包操作与目录状态的一致性问题，并把非 Debian 主机的下载接到 Metalink。内部仍按“目录数据、下载、包管理、UI”拆成可替换的边界，并让所有提权操作只有一个出口。
 
 ## 目录
 
@@ -56,8 +56,8 @@ cmd/sparkstore                          → app, ui, config, platform, version
 ## 下载生命周期
 
 1. `app.Service.PrepareDownload` 选择下载器。
-2. Debian：`APTSSDownloader` 生成 `domain.Command`，通过 `Terminal` 交给 `tea.ExecProcess`，aptss/aria2 显示原生进度并负责续传。
-3. 非 Debian：`MetalinkDownloader` 在后台解析 Metalink，按 preference 与 HTTPS 优先排序镜像，逐个尝试。
+2. Debian：`APTSSDownloader` 生成 `domain.Command`，通过 `Terminal` 交给 `tea.ExecProcess`，aptss/aria2 显示原生进度并负责续传；完成后自动安装本地包。
+3. 非 Debian：`MetalinkDownloader` 在后台解析 Metalink，按 preference 与 HTTPS 优先排序镜像，逐个尝试；完成后只保留安装包，因为 APM 按包名安装并忽略本地路径，安装由 `I` 单独触发。
 4. `Engine` 写 `.part`、支持 Range 续传、无数据超时、摘要校验、原子 rename。
 5. 任务状态写入 `~/.config/sparkstore/tasks.json`；启动时 `Recover` 结合最终文件、`.aria2` 与 `.part` 判断完成/中断。
 

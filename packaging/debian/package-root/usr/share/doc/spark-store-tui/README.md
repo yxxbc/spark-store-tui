@@ -18,14 +18,16 @@
 > publishes packages, provides the Go module path and serves as the overseas
 > mirror. CNB is a mirror. Release assets are identical on all three.
 
-Current release: **0.9.1**.
+Current release: **0.9.2**.
 
 ## Features
 
 - Browse Spark Store categories, search apps and read long descriptions.
 - Debian family: download, verify, install, update and remove through the
   official `aptss` backend.
-- Arch, Fedora/RHEL and openSUSE: install through Amber APM.
+- Arch, Fedora/RHEL and openSUSE: install through Amber APM; `D` downloads the
+  package artifact (resumable, verified) and `I` installs it by name, because
+  APM ignores local package paths.
 - Resumable downloads; interrupted tasks are recovered after a restart.
 - Check and upgrade only the selected application with `P`.
 - Store-style details pane: the application icon (`icons`) and the first in-app
@@ -57,24 +59,24 @@ unless `GOPROXY` is set.
 | Platform | Download |
 |---|---|
 | Debian / Ubuntu / UOS / Kylin | [Gitee Release](https://gitee.com/spark-store-project/spark-store-tui/releases) · [GitHub Releases](https://github.com/yxxbc/spark-store-tui/releases) |
-| Fedora / RHEL / openSUSE | `spark-store-tui-0.9.1-1.<arch>.rpm` |
+| Fedora / RHEL / openSUSE | `spark-store-tui-0.9.2-1.<arch>.rpm` |
 | Arch Linux | `yay -S spark-store-tui` |
-| Source | `spark-store-tui-source-0.9.1-r1.tar.gz` |
+| Source | `spark-store-tui-source-0.9.2-r1.tar.gz` |
 
 Debian example:
 
 ```bash
-curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.9.1/spark-store-tui_0.9.1-1_amd64.deb
-sudo apt install ./spark-store-tui_0.9.1-1_amd64.deb
+curl -LO https://gitee.com/spark-store-project/spark-store-tui/releases/download/v0.9.2/spark-store-tui_0.9.2-1_amd64.deb
+sudo apt install ./spark-store-tui_0.9.2-1_amd64.deb
 sudo aptss ssupdate
 ```
 
 Use `arm64` for aarch64 and `loong64` for LoongArch. On RPM systems:
 
 ```bash
-sudo dnf install ./spark-store-tui-0.9.1-1.x86_64.rpm
+sudo dnf install ./spark-store-tui-0.9.2-1.x86_64.rpm
 # openSUSE:
-sudo zypper install ./spark-store-tui-0.9.1-1.x86_64.rpm
+sudo zypper install ./spark-store-tui-0.9.2-1.x86_64.rpm
 ```
 
 ### GUI launch
@@ -171,9 +173,9 @@ make dist
 
 | Channel | Artifact |
 |---|---|
-| Debian | `spark-store-tui_0.9.1-1_{amd64,arm64,loong64}.deb` |
-| RPM | `spark-store-tui-0.9.1-1.{x86_64,aarch64,loongarch64}.rpm` |
-| Source | `spark-store-tui-source-0.9.1-r1.tar.gz` |
+| Debian | `spark-store-tui_0.9.2-1_{amd64,arm64,loong64}.deb` |
+| RPM | `spark-store-tui-0.9.2-1.{x86_64,aarch64,loongarch64}.rpm` |
+| Source | `spark-store-tui-source-0.9.2-r1.tar.gz` |
 | Checksums | `SHA256SUMS` |
 | AUR | `spark-store-tui` (built locally) |
 

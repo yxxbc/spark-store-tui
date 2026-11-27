@@ -19,7 +19,7 @@ func (m Model) renderBrowse() string {
 		"  " + muted.Render(m.selectedCategoryName()) +
 		"  " + muted.Render(m.selectedSourceValue().Name) +
 		"  " + good.Render("● "+m.host.Architecture)
-	footer := muted.Render("↑↓/jk 选择  / 搜索  [ ] 分类  D 下载/安装  I 安装  P 检查/升级  U 卸载  X 删除包  O 原图  E 简介  R 刷新  q 退出")
+	footer := muted.Render(footerText)
 	footer = ansi.Truncate(footer, max(20, m.width-2), "…")
 	title = ansi.Truncate(title, max(20, m.width-2), "…")
 	if m.width < 80 {
@@ -55,7 +55,7 @@ func (m Model) renderNarrowBrowse() string {
 		lines = append(lines, "", accent.Render("详情"), truncate(valueOr(app.Description, "暂无简介"), max(20, m.width-2)))
 	}
 	lines = append(lines,
-		ansi.Truncate(muted.Render("/ 搜索  [ ] 分类  D 下载/安装  I 安装  P 更新  U 卸载  X 删除  O 原图  E 简介  q 退出"), max(20, m.width-2), "…"),
+		ansi.Truncate(muted.Render(narrowFooterText), max(20, m.width-2), "…"),
 		ansi.Truncate(accent.Render(m.status), max(20, m.width-2), "…"))
 	return strings.Join(lines, "\n")
 }
@@ -119,7 +119,7 @@ func (m Model) renderDetails(width, height int) string {
 		"版本：" + valueOr(app.Version, "待加载"),
 		"包格式：" + valueOr(app.PackageFormat, "待加载"),
 		"大小：" + valueOr(app.Size, "待加载"),
-		"来源：" + sourceLabel(app.SourceID),
+		"来源：" + m.sourceLabel(app.SourceID),
 		m.packageStatusLine(app),
 	}, "\n")
 	headerBlock := lipgloss.JoinHorizontal(lipgloss.Top, icon, "  ", meta)
@@ -294,11 +294,16 @@ func categoryIndex(categories []domain.Category, id string) int {
 	return 0
 }
 
-func sourceLabel(id string) string {
+func (m Model) sourceLabel(id string) string {
 	if id == "" {
 		return "-"
 	}
-	return "Spark"
+	for _, source := range m.sources {
+		if source.ID == id {
+			return source.Name
+		}
+	}
+	return id
 }
 
 func valueOr(value, fallback string) string {

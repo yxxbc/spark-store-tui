@@ -12,10 +12,13 @@ import (
 )
 
 type fakeService struct {
-	apm       bool
-	prepared  int
-	existing  string
-	deleteErr error
+	apm           bool
+	prepared      int
+	existing      string
+	existingByApp map[string]string
+	plan          domain.DownloadPlan
+	deleteErr     error
+	deleted       []string
 }
 
 func (f *fakeService) Sources() []domain.CatalogSource   { return nil }
@@ -23,10 +26,15 @@ func (f *fakeService) Host() domain.PlatformInfo         { return domain.Platfor
 func (f *fakeService) UsesAPM() bool                     { return f.apm }
 func (f *fakeService) ValidateAPM(domain.App) error      { return nil }
 func (f *fakeService) ValidateDownload(domain.App) error { return nil }
-func (f *fakeService) ExistingPackage(domain.App) string { return f.existing }
-func (f *fakeService) CanUninstall(domain.App) error     { return nil }
-func (f *fakeService) ImagePreviewAvailable() bool       { return false }
-func (f *fakeService) BootstrapCommand() (string, bool)  { return "sudo apt install chafa", true }
+func (f *fakeService) ExistingPackage(app domain.App) string {
+	if f.existingByApp != nil {
+		return f.existingByApp[app.ID]
+	}
+	return f.existing
+}
+func (f *fakeService) CanUninstall(domain.App) error    { return nil }
+func (f *fakeService) ImagePreviewAvailable() bool      { return false }
+func (f *fakeService) BootstrapCommand() (string, bool) { return "sudo apt install chafa", true }
 func (f *fakeService) PreviewCommand(domain.App) (domain.Command, error) {
 	return domain.Command{Path: "sparkstore", Args: []string{"--preview-image", "s1.png"}}, nil
 }
@@ -41,6 +49,9 @@ func (f *fakeService) ListApps(context.Context, string, string) ([]domain.App, e
 
 func (f *fakeService) PrepareDownload(domain.App) (domain.DownloadPlan, error) {
 	f.prepared++
+	if f.plan.Command.Path != "" || f.plan.Background != nil {
+		return f.plan, nil
+	}
 	return domain.DownloadPlan{Command: domain.Command{Path: "aptss", Args: []string{"download", "code"}}}, nil
 }
 
@@ -60,7 +71,10 @@ func (f *fakeService) PackageStatus(context.Context, domain.App) (domain.Package
 	return domain.PackageStatus{}, nil
 }
 
-func (f *fakeService) DeletePackage(string) error { return f.deleteErr }
+func (f *fakeService) DeletePackage(path string) error {
+	f.deleted = append(f.deleted, path)
+	return f.deleteErr
+}
 
 type fakeTerminal struct{ executed int }
 
@@ -69,24 +83,37 @@ func (f *fakeTerminal) Exec(domain.Command, func(error) tea.Msg) tea.Cmd {
 	return func() tea.Msg { return nil }
 }
 
-func TestDownloadKeyUsesAPMOnNonDebianHosts(t *testing.T) {
-	service := &fakeService{apm: true}
+func TestDownloadKeyUsesMetalinkOnAPMHosts(t *testing.T) {
+	service := &fakeService{apm: true, plan: domain.DownloadPlan{
+		Background: func(context.Context) (domain.DownloadTask, error) {
+			return domain.DownloadTask{AppID: "code", Destination: "/dl/code.pkg"}, nil
+		},
+	}}
+	terminal := &fakeTerminal{}
 	model := Model{
 		service:  service,
-		terminal: &fakeTerminal{},
+		terminal: terminal,
 		apps:     []domain.App{{ID: "code", Name: "Code"}},
 		loadedAt: time.Now(),
 	}
 	updated, command := model.handleKey("d")
 	got := updated.(Model)
-	if command == nil || model.terminal.(*fakeTerminal).executed != 1 {
-		t.Fatalf("command = %v, executed = %d", command, model.terminal.(*fakeTerminal).executed)
+	if command == nil || service.prepared != 1 || !got.downloading || terminal.executed != 0 {
+		t.Fatalf("command = %v, prepared = %d, downloading = %v, executed = %d", command, service.prepared, got.downloading, terminal.executed)
 	}
-	if got.status != "正在通过 Amber APM 安装…" {
+	if got.status != "正在通过 Metalink 下载…" {
 		t.Fatalf("status = %q", got.status)
 	}
-	if service.prepared != 0 {
-		t.Fatalf("prepare called %d times", service.prepared)
+	updated, _ = got.Update(command())
+	finished := updated.(Model)
+	if finished.downloading || terminal.executed != 0 {
+		t.Fatalf("download must not auto-install on APM hosts: %+v", finished)
+	}
+	if finished.pendingPackage != "/dl/code.pkg" || finished.pendingPackageAppID != "code" {
+		t.Fatalf("pending package = %q/%q", finished.pendingPackage, finished.pendingPackageAppID)
+	}
+	if !strings.Contains(finished.status, "按 I 通过 APM 安装") {
+		t.Fatalf("status = %q", finished.status)
 	}
 }
 
@@ -128,9 +155,10 @@ func TestExistingPackageInstallsDirectly(t *testing.T) {
 func TestDeleteKeyReportsServiceError(t *testing.T) {
 	service := &fakeService{deleteErr: errors.New("permission denied")}
 	model := Model{
-		service:        service,
-		apps:           []domain.App{{ID: "code", Name: "Code"}},
-		pendingPackage: "/tmp/downloads/code.deb",
+		service:             service,
+		apps:                []domain.App{{ID: "code", Name: "Code"}},
+		pendingPackage:      "/tmp/downloads/code.deb",
+		pendingPackageAppID: "code",
 	}
 	updated, _ := model.handleKey("x")
 	got := updated.(Model)

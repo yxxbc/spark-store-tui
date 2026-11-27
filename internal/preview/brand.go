@@ -2,6 +2,7 @@ package preview
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/yxxbc/spark-store-tui/internal/version"
 )
 
 const maxImageBytes = 12 << 20
@@ -42,7 +45,12 @@ func RenderURL(rawURL string) string {
 
 // RenderURLSized renders a cached remote image at the requested cell size.
 func RenderURLSized(rawURL string, width, height int) string {
-	path, ok := cachedImage(rawURL)
+	return RenderURLSizedContext(context.Background(), rawURL, width, height)
+}
+
+// RenderURLSizedContext cancels the fetch and the renderer when ctx is done.
+func RenderURLSizedContext(ctx context.Context, rawURL string, width, height int) string {
+	path, ok := cachedImage(ctx, rawURL)
 	if !ok {
 		return ""
 	}
@@ -53,7 +61,7 @@ func RenderURLSized(rawURL string, width, height int) string {
 // native protocol is preferred; chafa is the fallback. With wait=true the
 // caller pauses until Enter so the user can inspect the image.
 func DisplayURL(rawURL string, width, height int, wait bool) error {
-	path, ok := cachedImage(rawURL)
+	path, ok := cachedImage(context.Background(), rawURL)
 	if !ok {
 		return fmt.Errorf("could not fetch image")
 	}
@@ -85,18 +93,23 @@ func DisplayURL(rawURL string, width, height int, wait bool) error {
 // RenderURLChafa always uses chafa, even on terminals with a native image
 // protocol. It is used for the small application icon inside a bordered panel.
 func RenderURLChafa(rawURL string, width, height int) string {
-	path, ok := cachedImage(rawURL)
+	return RenderURLChafaContext(context.Background(), rawURL, width, height)
+}
+
+// RenderURLChafaContext is RenderURLChafa with cancellation.
+func RenderURLChafaContext(ctx context.Context, rawURL string, width, height int) string {
+	path, ok := cachedImage(ctx, rawURL)
 	if !ok {
 		return ""
 	}
-	return renderChafa(path, width, height)
+	return renderChafaContext(ctx, path, width, height)
 }
 
 // imageCacheTTL bounds how long a cached icon/screenshot may be reused without
 // revalidating it against the remote URL.
 const imageCacheTTL = 24 * time.Hour
 
-func cachedImage(rawURL string) (string, bool) {
+func cachedImage(ctx context.Context, rawURL string) (string, bool) {
 	if rawURL == "" {
 		return "", false
 	}
@@ -112,12 +125,12 @@ func cachedImage(rawURL string) (string, bool) {
 		}
 		// Revalidate; if the refresh fails, keep the stale copy rather than
 		// dropping the preview entirely.
-		if err := fetch(rawURL, path); err != nil {
+		if err := fetchContext(ctx, rawURL, path); err != nil {
 			return path, true
 		}
 		return path, true
 	}
-	if err := fetch(rawURL, path); err != nil {
+	if err := fetchContext(ctx, rawURL, path); err != nil {
 		return "", false
 	}
 	return path, true
@@ -146,12 +159,16 @@ func RenderFileSized(path string, width, height int) string {
 }
 
 func renderChafa(path string, width, height int) string {
+	return renderChafaContext(context.Background(), path, width, height)
+}
+
+func renderChafaContext(ctx context.Context, path string, width, height int) string {
 	if _, err := exec.LookPath("chafa"); err != nil {
 		return ""
 	}
 	// TUI output is captured rather than written to chafa's controlling terminal.
 	// Probing in that situation can block for seconds on some terminals.
-	command := exec.Command("chafa", "--probe=off", "--format=symbols",
+	command := exec.CommandContext(ctx, "chafa", "--probe=off", "--format=symbols",
 		fmt.Sprintf("--size=%dx%d", width, height), "--animate=off", path)
 	output, err := command.Output()
 	if err != nil {
@@ -252,6 +269,10 @@ func isPNG(data []byte) bool {
 }
 
 func fetch(rawURL, path string) error {
+	return fetchContext(context.Background(), rawURL, path)
+}
+
+func fetchContext(ctx context.Context, rawURL, path string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
 		return err
@@ -260,11 +281,11 @@ func fetch(rawURL, path string) error {
 		return fmt.Errorf("unsupported image URL scheme %q", parsed.Scheme)
 	}
 	client := &http.Client{Timeout: 8 * time.Second}
-	request, err := http.NewRequest(http.MethodGet, rawURL, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return err
 	}
-	request.Header.Set("User-Agent", "sparkstore/0.9")
+	request.Header.Set("User-Agent", version.UserAgent())
 	request.Header.Set("Accept", "image/*")
 	response, err := client.Do(request)
 	if err != nil {

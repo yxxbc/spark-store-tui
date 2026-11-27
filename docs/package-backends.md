@@ -1,4 +1,4 @@
-# 包管理与下载链路调研（0.9.1）
+# 包管理与下载链路调研（0.9.2）
 
 本文记录 `sparkstore` 实际使用的星火商店包管理路径。结论以 2026-10-31 的线上 metadata 与仓库代码为准。
 
@@ -7,9 +7,9 @@
 | 发行版 | 目录展示 | 下载 | 安装 / 更新 / 卸载 | 版本查询 |
 |---|---|---|---|---|
 | Debian / Ubuntu / UOS / 麒麟 | Spark metadata | `aptss download` | `aptss install` / `aptss remove` | `aptss policy` |
-| Arch / Fedora / RHEL / openSUSE | Spark metadata | 不单独下载 | Amber APM `apm install` / `apm remove` | `apm policy` |
+| Arch / Fedora / RHEL / openSUSE | Spark metadata | Metalink（`D`，进程内 HTTP） | Amber APM `apm install` / `apm remove` | `apm policy` |
 
-TUI 本身不直接调用 `apt`、`dnf`、`pacman`、`zypper` 安装星火应用，也不调用 `fzf`、`rg`、`find` 等外部进程完成交互。默认只读取公开 metadata；只有用户按下操作键（`D`/`I`/`P`/`U`）后才启动 `aptss` 或 `apm`。
+TUI 本身不直接调用 `apt`、`dnf`、`pacman`、`zypper` 安装星火应用，也不调用 `fzf`、`rg`、`find` 等外部进程完成交互。默认只读取公开 metadata；只有用户按下操作键（`D`/`I`/`P`/`U`）后才启动 `aptss`、`apm`，或在 TUI 进程内发起 Metalink 下载。
 
 ## Debian：aptss
 
@@ -39,6 +39,7 @@ apm update
 ```
 
 - 这些发行版不直接安装 Spark 的 `.deb`；由 Amber APM 提供兼容安装。
+- `D` 用 Metalink 把包文件下载到下载目录（可续传、摘要校验）；`I` 再通过 `apm install <包名>` 安装。APM 忽略本地路径，所以下载和安装是两步。
 - 包名同样优先使用 Deb 文件名前缀，避免目录名与真实包名不一致。
 - 缺少 `apm` 时，安装/卸载会明确报错；目录浏览与下载不受影响。
 

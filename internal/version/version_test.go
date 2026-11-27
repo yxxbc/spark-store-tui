@@ -5,6 +5,20 @@ import (
 	"testing"
 )
 
+func TestUserAgentFollowsVersion(t *testing.T) {
+	original := Version
+	t.Cleanup(func() { Version = original })
+
+	Version = "0.9.1"
+	if got := UserAgent(); got != "sparkstore/0.9.1" {
+		t.Fatalf("user agent = %q", got)
+	}
+	Version = "dev"
+	if got := UserAgent(); got != "sparkstore/dev" {
+		t.Fatalf("dev user agent = %q", got)
+	}
+}
+
 func TestStringReportsInjectedVersion(t *testing.T) {
 	originalVersion, originalCommit, originalDate := Version, Commit, Date
 	t.Cleanup(func() { Version, Commit, Date = originalVersion, originalCommit, originalDate })

@@ -1,6 +1,7 @@
 package preview
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -26,6 +27,20 @@ func TestFetchCachesImage(t *testing.T) {
 	}
 	if string(data) != "image-data" {
 		t.Fatalf("image content = %q", data)
+	}
+}
+
+func TestFetchContextCancelsRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "image/png")
+		_, _ = writer.Write([]byte("image-data"))
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := fetchContext(ctx, server.URL, filepath.Join(t.TempDir(), "image.img")); err == nil {
+		t.Fatal("expected a canceled request error")
 	}
 }
 

@@ -122,6 +122,22 @@ func TestPackageStatusReportsUninstalledApp(t *testing.T) {
 	}
 }
 
+func TestNarrowLayoutKeepsListUsable(t *testing.T) {
+	model := Model{
+		width:           70,
+		height:          20,
+		apps:            []domain.App{{ID: "a", Name: "App", Version: "1.0"}},
+		screenshotImage: "[screenshot-art]",
+	}
+	out := model.renderNarrowBrowse()
+	if !strings.Contains(out, "App") || !strings.Contains(out, "应用 1/1") {
+		t.Fatalf("narrow layout = %q", out)
+	}
+	if strings.Contains(out, "[screenshot-art]") {
+		t.Fatalf("narrow layout must omit the screenshot: %q", out)
+	}
+}
+
 func TestRenderDetailsShowsScreenshotArt(t *testing.T) {
 	model := Model{
 		imageReady:      true,
@@ -148,6 +164,113 @@ func TestStaleMetadataRefreshesBeforeDownload(t *testing.T) {
 	}
 	if !strings.Contains(got.status, "正在刷新") {
 		t.Fatalf("status = %q", got.status)
+	}
+}
+
+func TestInstallKeyIgnoresAnotherAppsPackage(t *testing.T) {
+	service := &fakeService{}
+	model := Model{
+		service:             service,
+		terminal:            &fakeTerminal{},
+		apps:                []domain.App{{ID: "a"}, {ID: "b"}},
+		selectedApp:         1,
+		pendingPackage:      "/dl/a.deb",
+		pendingPackageAppID: "a",
+	}
+	updated, command := model.handleKey("i")
+	got := updated.(Model)
+	if command != nil || got.status != "没有可安装的本地包；按 D 下载" {
+		t.Fatalf("command = %v, status = %q", command, got.status)
+	}
+}
+
+func TestDeleteKeyIgnoresAnotherAppsPackage(t *testing.T) {
+	service := &fakeService{}
+	model := Model{
+		service:             service,
+		apps:                []domain.App{{ID: "a"}, {ID: "b"}},
+		selectedApp:         1,
+		pendingPackage:      "/dl/a.deb",
+		pendingPackageAppID: "a",
+	}
+	updated, _ := model.handleKey("x")
+	got := updated.(Model)
+	if got.status != "没有本地安装包可删除" || len(service.deleted) != 0 {
+		t.Fatalf("status = %q, deleted = %v", got.status, service.deleted)
+	}
+}
+
+func TestDownloadFinishedDoesNotInstallForAnotherApp(t *testing.T) {
+	terminal := &fakeTerminal{}
+	model := Model{
+		service:     &fakeService{},
+		terminal:    terminal,
+		apps:        []domain.App{{ID: "a"}, {ID: "b"}},
+		selectedApp: 1,
+	}
+	updated, command := model.Update(downloadFinishedMsg{
+		appID: "a",
+		task:  domain.DownloadTask{AppID: "a", Destination: "/dl/a.deb"},
+	})
+	got := updated.(Model)
+	if command != nil || terminal.executed != 0 {
+		t.Fatalf("command = %v, executed = %d", command, terminal.executed)
+	}
+	if got.pendingPackage != "/dl/a.deb" || got.pendingPackageAppID != "a" {
+		t.Fatalf("pending package = %q/%q", got.pendingPackage, got.pendingPackageAppID)
+	}
+	if !strings.Contains(got.status, "后台下载完成") {
+		t.Fatalf("status = %q", got.status)
+	}
+}
+
+func TestStaleCatalogResponseIsIgnored(t *testing.T) {
+	model := Model{
+		sources:        []domain.CatalogSource{{ID: "spark-store"}},
+		category:       "games",
+		apps:           []domain.App{{ID: "game"}},
+		catalogRequest: 2,
+	}
+	updated, _ := model.Update(appsLoadedMsg{sourceID: "spark-store", request: 1, apps: []domain.App{{ID: "dev"}}})
+	got := updated.(Model)
+	if len(got.apps) != 1 || got.apps[0].ID != "game" {
+		t.Fatalf("stale response applied: %+v", got.apps)
+	}
+	updated, _ = got.Update(appsLoadedMsg{sourceID: "spark-store", request: 2, apps: []domain.App{{ID: "dev"}}})
+	got = updated.(Model)
+	if len(got.apps) != 1 || got.apps[0].ID != "dev" {
+		t.Fatalf("current response dropped: %+v", got.apps)
+	}
+}
+
+func TestStaleCategoriesResponseIsIgnored(t *testing.T) {
+	model := Model{
+		sources:        []domain.CatalogSource{{ID: "spark-store"}},
+		categories:     []domain.Category{{ID: "games", Name: "Games"}},
+		category:       "games",
+		catalogRequest: 3,
+	}
+	updated, _ := model.Update(categoriesLoadedMsg{
+		sourceID: "spark-store", request: 2, categories: []domain.Category{{ID: "dev", Name: "Dev"}},
+	})
+	got := updated.(Model)
+	if len(got.categories) != 1 || got.categories[0].ID != "games" {
+		t.Fatalf("stale categories applied: %+v", got.categories)
+	}
+}
+
+func TestCategorySwitchStartsNewCatalogRequest(t *testing.T) {
+	model := Model{
+		sources:        []domain.CatalogSource{{ID: "spark-store"}},
+		categories:     []domain.Category{{ID: "development"}, {ID: "games"}},
+		categoryIndex:  0,
+		category:       "development",
+		catalogRequest: 4,
+	}
+	updated, command := model.handleKey("]")
+	got := updated.(Model)
+	if command == nil || got.catalogRequest != 5 {
+		t.Fatalf("command = %v, catalogRequest = %d", command, got.catalogRequest)
 	}
 }
 

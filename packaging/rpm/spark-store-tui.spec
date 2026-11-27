@@ -1,5 +1,5 @@
 Name:           spark-store-tui
-Version:        0.9.1
+Version:        0.9.2
 Release:        1%{?dist}
 Summary:        Native terminal UI for Spark Store software management
 
@@ -71,6 +71,11 @@ update-desktop-database /usr/share/applications >/dev/null 2>&1 || :
 update-desktop-database /usr/share/applications >/dev/null 2>&1 || :
 
 %changelog
+* Fri Nov 27 2026 Xynrin <xynrin@163.com> - 0.9.2-1
+- Scope install/delete and finished downloads to the selected application
+- Drop out-of-order catalog responses and cancel stale preview work
+- Download Metalink artifacts on APM hosts before installing by name
+
 * Sat Oct 31 2026 Xynrin <xynrin@163.com> - 0.9.1-1
 - Fix arrow-key navigation, category switching and screenshot previews
 - Improve the two-column layout and short-terminal behavior

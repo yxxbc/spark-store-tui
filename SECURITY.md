@@ -32,7 +32,9 @@ never runs as a privileged process and never installs a setuid helper.
   by `aptss` against the repository digest.
 - Downloads are written to a `.part` file, verified, then atomically renamed.
 - Remote images are limited to 12 MiB, require an `image/*` content type, and
-  are cached with `0700` directories / `0600` files.
+  are cached with `0700` directories / `0600` files. Image URLs may use plain
+  HTTP by design: previews are non-executable raster data. Package and Metalink
+  transport still requires HTTPS unless `SPARKSTORE_ALLOW_HTTP=1`.
 
 ## Local files
 

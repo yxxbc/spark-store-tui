@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-27
+
+### Changed
+
+- Arch/Fedora/RHEL/openSUSE: `D` now downloads the package artifact through
+  Metalink (resumable, digest-verified) and `I` installs it by name through
+  Amber APM, which ignores local package paths. A missing download asset falls
+  back to an APM install.
+- Chafa bootstrap commands run as argument vectors with `sudo --`; catalog and
+  image requests use the build version as their User-Agent; catalog responses
+  are bounded to 4 MiB.
+
+### Fixed
+
+- `I` and `X` act only on the selected application's package; a package
+  downloaded for another app can no longer be installed or deleted.
+- A download that finishes after switching apps is recorded for its own app
+  instead of being installed into the current selection.
+- Out-of-order catalog and category responses are discarded, so a slow request
+  cannot replace the list currently shown.
+- Preview fetches and chafa renders are canceled when the selection changes,
+  instead of accumulating while scrolling.
+
 ## [0.9.1] - 2026-10-31
 
 ### Changed

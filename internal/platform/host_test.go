@@ -36,8 +36,12 @@ func TestValidateArchitecture(t *testing.T) {
 }
 
 func TestImagePreviewCommand(t *testing.T) {
-	command, err := ImagePreviewCommand("deb")
-	if err != nil || command != "sudo apt-get update && sudo apt-get install -y chafa" {
+	command, err := imagePreviewCommandForEUID(1000, "deb")
+	if err != nil || command != "sudo -- apt-get update && sudo -- apt-get install -y chafa" {
 		t.Fatalf("command = %q, err = %v", command, err)
+	}
+	root, err := imagePreviewCommandForEUID(0, "deb")
+	if err != nil || root != "apt-get update && apt-get install -y chafa" {
+		t.Fatalf("root command = %q, err = %v", root, err)
 	}
 }

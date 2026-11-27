@@ -167,6 +167,18 @@ func TestUsesAPMFollowsBackend(t *testing.T) {
 	}
 }
 
+func TestValidateDownloadRequiresMetalinkOnAPM(t *testing.T) {
+	service := New(Deps{Backend: fakeBackend{family: "apm"}})
+	app := domain.App{Name: "Code", PackageName: "code", Filename: "code.pkg"}
+	if err := service.ValidateDownload(app); err == nil {
+		t.Fatal("expected a missing Metalink error")
+	}
+	app.MetalinkURL = "https://example.test/code.metalink"
+	if err := service.ValidateDownload(app); err != nil {
+		t.Fatalf("valid Metalink asset rejected: %v", err)
+	}
+}
+
 func TestPreviewCommandUsesScreenshot(t *testing.T) {
 	service, _, _ := newTestService(t)
 	command, err := service.PreviewCommand(domain.App{

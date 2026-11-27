@@ -70,13 +70,16 @@ type Model struct {
 	iconImage           string
 	screenshotImage     string
 	previewRequest      int
+	previewCancel       context.CancelFunc
 	loadedAt            time.Time
+	catalogRequest      int
 	pendingAction       string
 	pendingAppID        string
 	searching           bool
 	query               string
 	descriptionExpanded bool
 	pendingPackage      string
+	pendingPackageAppID string
 	downloading         bool
 	checkingPackage     bool
 	packageStatus       domain.PackageStatus
@@ -130,14 +133,14 @@ func (m Model) WithRecoveredDownloads(tasks []domain.DownloadTask) Model {
 	return m
 }
 
-func (m Model) Init() tea.Cmd { return m.loadCategories() }
+func (m Model) Init() tea.Cmd { return m.loadCategories(0) }
 
 func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch message := message.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = message.Width, message.Height
 	case categoriesLoadedMsg:
-		if message.sourceID != m.selectedSourceValue().ID {
+		if message.sourceID != m.selectedSourceValue().ID || message.request != m.catalogRequest {
 			return m, nil
 		}
 		if message.err != nil {
@@ -152,9 +155,10 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.category = m.categories[m.categoryIndex].ID
 		}
 		m.status = "正在加载真实应用目录…"
-		return m, m.loadApps()
+		updated, command := m.beginAppsLoad()
+		return updated, command
 	case appsLoadedMsg:
-		if message.sourceID != m.selectedSourceValue().ID {
+		if message.sourceID != m.selectedSourceValue().ID || message.request != m.catalogRequest {
 			return m, nil
 		}
 		m.loading = false
@@ -169,7 +173,7 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.clearPackageStatus()
-		m.previewRequest++
+		m = m.invalidatePreview()
 		if message.err != nil {
 			m.pendingAction = ""
 			m.pendingAppID = ""
@@ -192,7 +196,12 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if message.request != m.previewRequest || message.appID != m.selectedAppValue().ID {
 			return m, nil
 		}
-		return m, m.loadPreview(message.appID, message.iconURL, message.screenshotURL, message.request)
+		ctx, cancel := context.WithCancel(context.Background())
+		if m.previewCancel != nil {
+			m.previewCancel()
+		}
+		m.previewCancel = cancel
+		return m, m.loadPreview(ctx, message.appID, message.iconURL, message.screenshotURL, message.request)
 	case previewLoadedMsg:
 		if message.request == m.previewRequest && m.selectedAppValue().ID == message.appID {
 			m.iconImage = message.icon
@@ -204,7 +213,19 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = "下载失败：" + message.err.Error()
 			return m, nil
 		}
-		m.pendingPackage = message.task.Destination
+		appID := message.appID
+		if appID == "" {
+			appID = message.task.AppID
+		}
+		m.setPendingPackage(appID, message.task.Destination)
+		if appID != m.selectedAppValue().ID {
+			m.status = "后台下载完成；切换回该应用后按 I 可安装"
+			return m, nil
+		}
+		if m.service != nil && m.service.UsesAPM() {
+			m.status = "下载完成，安装包位于 " + message.task.Destination + "；按 I 通过 APM 安装"
+			return m, nil
+		}
 		m.status = "下载完成，正在安装…"
 		return m, m.installPackage()
 	case uninstallFinishedMsg:
@@ -213,14 +234,14 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.status = "卸载完成"
 		}
-		m.pendingPackage = ""
+		m.clearPendingPackage()
 	case installFinishedMsg:
 		if message.err != nil {
 			m.status = "安装失败：" + message.err.Error()
-		} else if m.pendingPackage == "" {
-			m.status = "安装完成"
+		} else if path := m.pendingPackageFor(m.selectedAppValue().ID); path != "" {
+			m.status = "安装完成；安装包保留在 " + path
 		} else {
-			m.status = "安装完成；安装包保留在 " + m.pendingPackage
+			m.status = "安装完成"
 		}
 	case packageStatusMsg:
 		if message.appID != m.selectedAppValue().ID {
@@ -262,10 +283,48 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-const helpText = "↑↓/jk 选择 · / 搜索 · [ ] 分类 · D 下载/安装 · I 安装本地包 · P 检查/升级 · U 卸载 · X 删除本地包 · O 原图 · E 简介 · R 刷新 · q 退出"
+const (
+	helpText         = "↑↓/jk 选择 · / 搜索 · [ ] 分类 · D 下载/安装 · I 安装 · P 检查/升级 · U 卸载 · X 删除本地包 · O 原图 · E 简介 · R 刷新 · q 退出"
+	footerText       = "↑↓/jk 选择  / 搜索  [ ] 分类  D 下载/安装  I 安装  P 检查/升级  U 卸载  X 删除包  O 原图  E 简介  R 刷新  q 退出"
+	narrowFooterText = "/ 搜索  [ ] 分类  D 下载/安装  I 安装  P 更新  U 卸载  X 删除  O 原图  E 简介  q 退出"
+)
+
+func (m Model) invalidatePreview() Model {
+	m.previewRequest++
+	if m.previewCancel != nil {
+		m.previewCancel()
+		m.previewCancel = nil
+	}
+	return m
+}
+
+// setPendingPackage records a downloaded artifact for the application it
+// belongs to, so a later I or X cannot act on another application's file.
+func (m *Model) setPendingPackage(appID, path string) {
+	if path == "" {
+		return
+	}
+	m.pendingPackage = path
+	m.pendingPackageAppID = appID
+}
+
+func (m *Model) clearPendingPackage() {
+	m.pendingPackage = ""
+	m.pendingPackageAppID = ""
+}
+
+func (m Model) pendingPackageFor(appID string) string {
+	if appID == "" || m.pendingPackageAppID != appID {
+		return ""
+	}
+	return m.pendingPackage
+}
 
 func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 	if key == "q" || key == "ctrl+c" {
+		if m.previewCancel != nil {
+			m.previewCancel()
+		}
 		return m, tea.Quit
 	}
 	if m.searching {
@@ -288,7 +347,7 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		}
 		m.iconImage = ""
 		m.screenshotImage = ""
-		m.previewRequest++
+		m = m.invalidatePreview()
 		return m, m.schedulePreview()
 	}
 
@@ -318,12 +377,13 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.screenshotImage = ""
 			m.descriptionExpanded = false
 			m.clearPackageStatus()
-			m.previewRequest++
+			m = m.invalidatePreview()
 			m.loading = true
 			m.loadError = ""
 			m.categories = nil
 			m.status = "正在切换目录源…"
-			return m, m.loadCategories()
+			updated, command := m.beginCategoriesLoad()
+			return updated, command
 		}
 		if len(m.filteredApps()) > 0 {
 			m.selectedApp = wrap(m.selectedApp+delta, len(m.filteredApps()))
@@ -331,7 +391,7 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 			m.screenshotImage = ""
 			m.descriptionExpanded = false
 			m.clearPackageStatus()
-			m.previewRequest++
+			m = m.invalidatePreview()
 			return m, m.schedulePreview()
 		}
 	case "/":
@@ -342,7 +402,8 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		m.loadError = ""
 		m.status = "正在刷新目录…"
 		m.clearPackageStatus()
-		return m, m.loadApps()
+		updated, command := m.beginAppsLoad()
+		return updated, command
 	case "[", "]":
 		if len(m.categories) == 0 {
 			m.status = "当前目录源不提供分类"
@@ -361,10 +422,11 @@ func (m Model) handleKey(key string) (tea.Model, tea.Cmd) {
 		m.screenshotImage = ""
 		m.descriptionExpanded = false
 		m.clearPackageStatus()
-		m.previewRequest++
+		m = m.invalidatePreview()
 		m.loading = true
 		m.status = "正在切换分类…"
-		return m, m.loadApps()
+		updated, command := m.beginAppsLoad()
+		return updated, command
 	case "enter":
 		if app := m.selectedAppValue(); app.ID == "" {
 			m.status = "当前没有可操作的应用"
@@ -407,11 +469,13 @@ func (m Model) queueCatalogRefresh(action string) (tea.Model, tea.Cmd) {
 	m.loading = true
 	m.loadError = ""
 	m.status = "目录信息超过 10 分钟，正在刷新…"
-	return m, m.loadApps()
+	updated, command := m.beginAppsLoad()
+	return updated, command
 }
 
-// downloadAction is direct: APM hosts install immediately, and Debian hosts
-// install an existing local package instead of opening a confirmation screen.
+// downloadAction is direct: it fetches the package artifact without a
+// confirmation screen. Debian hosts then install it with aptss; APM hosts keep
+// the file and install by name with I, because APM ignores local paths.
 func (m Model) downloadAction() (tea.Model, tea.Cmd) {
 	if m.metadataStale() {
 		return m.queueCatalogRefresh("d")
@@ -425,25 +489,33 @@ func (m Model) downloadAction() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	app := m.selectedAppValue()
-	if m.service.UsesAPM() {
-		if err := m.service.ValidateAPM(app); err != nil {
-			m.status = "当前应用没有可用于 APM 的包名"
-			return m, nil
-		}
-		m.status = "正在通过 Amber APM 安装…"
-		return m, m.installPackage()
+	if app.ID == "" {
+		m.status = "当前没有可下载的应用"
+		return m, nil
 	}
 	if err := m.service.ValidateDownload(app); err != nil {
-		m.status = "当前应用没有可交给 aptss 的软件包元数据"
+		if m.service.UsesAPM() && m.service.ValidateAPM(app) == nil {
+			m.status = "该应用没有可下载的安装包，正在通过 APM 安装…"
+			return m, m.installPackage()
+		}
+		m.status = "当前应用没有可下载的软件包元数据"
 		return m, nil
 	}
 	if existing := m.service.ExistingPackage(app); existing != "" {
-		m.pendingPackage = existing
+		m.setPendingPackage(app.ID, existing)
+		if m.service.UsesAPM() {
+			m.status = "安装包已存在：" + existing + "；按 I 通过 APM 安装"
+			return m, nil
+		}
 		m.status = "已存在安装包，正在安装…"
 		return m, m.installPackage()
 	}
 	m.downloading = true
-	m.status = "正在通过 aptss/aria2 下载…"
+	if m.service.UsesAPM() {
+		m.status = "正在通过 Metalink 下载…"
+	} else {
+		m.status = "正在通过 aptss/aria2 下载…"
+	}
 	return m, m.downloadApp()
 }
 
@@ -453,7 +525,15 @@ func (m Model) installAction() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	app := m.selectedAppValue()
-	path := m.pendingPackage
+	if app.ID == "" {
+		m.status = "当前没有可安装的应用"
+		return m, nil
+	}
+	if m.service.UsesAPM() {
+		m.status = "正在通过 Amber APM 安装…"
+		return m, m.installPackage()
+	}
+	path := m.pendingPackageFor(app.ID)
 	if path == "" {
 		path = m.service.ExistingPackage(app)
 	}
@@ -461,7 +541,7 @@ func (m Model) installAction() (tea.Model, tea.Cmd) {
 		m.status = "没有可安装的本地包；按 D 下载"
 		return m, nil
 	}
-	m.pendingPackage = path
+	m.setPendingPackage(app.ID, path)
 	m.status = "正在安装本地安装包…"
 	return m, m.installPackage()
 }
@@ -507,15 +587,15 @@ func (m Model) uninstallAction() (tea.Model, tea.Cmd) {
 		m.status = "无法卸载：" + err.Error()
 		return m, nil
 	}
-	m.pendingPackage = m.service.ExistingPackage(m.selectedAppValue())
 	m.status = "正在卸载应用…"
 	return m, m.terminal.Exec(plan.Command, func(err error) tea.Msg { return uninstallFinishedMsg{err: err} })
 }
 
 func (m Model) deleteAction() (tea.Model, tea.Cmd) {
-	path := m.pendingPackage
+	app := m.selectedAppValue()
+	path := m.pendingPackageFor(app.ID)
 	if path == "" && m.service != nil {
-		path = m.service.ExistingPackage(m.selectedAppValue())
+		path = m.service.ExistingPackage(app)
 	}
 	if path == "" {
 		m.status = "没有本地安装包可删除"
@@ -526,7 +606,7 @@ func (m Model) deleteAction() (tea.Model, tea.Cmd) {
 	} else {
 		m.status = "已删除本地安装包"
 	}
-	m.pendingPackage = ""
+	m.clearPendingPackage()
 	return m, nil
 }
 
@@ -554,30 +634,35 @@ func (m Model) deletePackage(path string) error {
 func (m Model) downloadApp() tea.Cmd {
 	app := m.selectedAppValue()
 	service := m.service
+	appID := app.ID
 	if service == nil {
-		return func() tea.Msg { return downloadFinishedMsg{err: fmt.Errorf("download service is not configured")} }
+		return func() tea.Msg {
+			return downloadFinishedMsg{appID: appID, err: fmt.Errorf("download service is not configured")}
+		}
 	}
 	plan, err := service.PrepareDownload(app)
 	if err != nil {
-		return func() tea.Msg { return downloadFinishedMsg{err: err} }
+		return func() tea.Msg { return downloadFinishedMsg{appID: appID, err: err} }
 	}
 	if plan.Interactive() {
 		if m.terminal == nil {
-			return func() tea.Msg { return downloadFinishedMsg{err: fmt.Errorf("terminal is not configured")} }
+			return func() tea.Msg {
+				return downloadFinishedMsg{appID: appID, err: fmt.Errorf("terminal is not configured")}
+			}
 		}
 		return m.terminal.Exec(plan.Command, func(runErr error) tea.Msg {
 			task, finishErr := plan.Finish(runErr)
-			return downloadFinishedMsg{task: task, err: finishErr}
+			return downloadFinishedMsg{appID: appID, task: task, err: finishErr}
 		})
 	}
 	if plan.Background == nil {
-		return func() tea.Msg { return downloadFinishedMsg{err: fmt.Errorf("download plan is empty")} }
+		return func() tea.Msg { return downloadFinishedMsg{appID: appID, err: fmt.Errorf("download plan is empty")} }
 	}
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
 		defer cancel()
 		task, err := plan.Background(ctx)
-		return downloadFinishedMsg{task: task, err: err}
+		return downloadFinishedMsg{appID: appID, task: task, err: err}
 	}
 }
 
@@ -602,43 +687,57 @@ func (m *Model) clearPackageStatus() {
 }
 
 func (m Model) installPackage() tea.Cmd {
-	path := m.pendingPackage
+	app := m.selectedAppValue()
+	path := m.pendingPackageFor(app.ID)
 	if m.service == nil || m.terminal == nil {
 		return func() tea.Msg { return installFinishedMsg{err: fmt.Errorf("安装服务未配置")} }
 	}
-	plan, err := m.service.Install(m.selectedAppValue(), path)
+	plan, err := m.service.Install(app, path)
 	if err != nil {
 		return func() tea.Msg { return installFinishedMsg{err: err} }
 	}
 	return m.terminal.Exec(plan.Command, func(err error) tea.Msg { return installFinishedMsg{err: err} })
 }
 
-func (m Model) loadApps() tea.Cmd {
+// beginAppsLoad starts a catalog load and stamps it with a request number. A
+// slow response for a previous category or refresh is dropped instead of
+// overwriting the list the user is looking at.
+func (m Model) beginAppsLoad() (Model, tea.Cmd) {
+	m.catalogRequest++
+	return m, m.loadApps(m.catalogRequest)
+}
+
+func (m Model) beginCategoriesLoad() (Model, tea.Cmd) {
+	m.catalogRequest++
+	return m, m.loadCategories(m.catalogRequest)
+}
+
+func (m Model) loadApps(request int) tea.Cmd {
 	source := m.selectedSourceValue()
 	service := m.service
 	category := m.category
 	return func() tea.Msg {
 		if service == nil {
-			return appsLoadedMsg{sourceID: source.ID, err: fmt.Errorf("%s 尚未配置仓库", source.Name)}
+			return appsLoadedMsg{sourceID: source.ID, request: request, err: fmt.Errorf("%s 尚未配置仓库", source.Name)}
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 		defer cancel()
 		apps, err := service.ListApps(ctx, source.ID, category)
-		return appsLoadedMsg{sourceID: source.ID, apps: apps, err: err}
+		return appsLoadedMsg{sourceID: source.ID, request: request, apps: apps, err: err}
 	}
 }
 
-func (m Model) loadCategories() tea.Cmd {
+func (m Model) loadCategories(request int) tea.Cmd {
 	source := m.selectedSourceValue()
 	service := m.service
 	return func() tea.Msg {
 		if service == nil {
-			return categoriesLoadedMsg{sourceID: source.ID, err: fmt.Errorf("%s 尚未配置分类或仓库", source.Name)}
+			return categoriesLoadedMsg{sourceID: source.ID, request: request, err: fmt.Errorf("%s 尚未配置分类或仓库", source.Name)}
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		categories, err := service.ListCategories(ctx, source.ID)
-		return categoriesLoadedMsg{sourceID: source.ID, categories: categories, err: err}
+		return categoriesLoadedMsg{sourceID: source.ID, request: request, categories: categories, err: err}
 	}
 }
 
@@ -679,18 +778,21 @@ func (m Model) previewURLs() (iconURL, screenshotURL string) {
 	return app.IconURL, screenshotURL
 }
 
-func (m Model) loadPreview(appID, iconURL, screenshotURL string, request int) tea.Cmd {
+func (m Model) loadPreview(ctx context.Context, appID, iconURL, screenshotURL string, request int) tea.Cmd {
 	return func() tea.Msg {
 		icon := ""
 		if iconURL != "" {
-			icon = preview.RenderURLChafa(iconURL, 10, 5)
+			icon = preview.RenderURLChafaContext(ctx, iconURL, 10, 5)
+		}
+		if ctx.Err() != nil {
+			return previewLoadedMsg{appID: appID, request: request}
 		}
 		screenshot := ""
 		if screenshotURL != "" {
 			// Bubble Tea's text renderer strips graphics escape sequences, so
 			// in-TUI previews use chafa art. The O key opens the original image
 			// through the terminal's native protocol outside the TUI.
-			screenshot = preview.RenderURLChafa(screenshotURL, 18, 9)
+			screenshot = preview.RenderURLChafaContext(ctx, screenshotURL, 18, 9)
 		}
 		return previewLoadedMsg{
 			appID: appID, icon: icon, screenshot: screenshot, request: request,
